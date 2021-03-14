@@ -6,3 +6,18 @@
     text-indent: 0px;
     box-sizing: border-box;
 }
+
+* + * {
+    margin: 1em 0 0;
+}
+
+canvas {
+    box-shadow: 0px 0px 10px rgb(212, 212, 212);
+}
+
+.flex-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+}

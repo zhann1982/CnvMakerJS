@@ -7,6 +7,8 @@ window.requestAnimFrame = (function(callback) {
 
 // shortcut for logging
 let log = console.log; 
+let dir = console.dir;
+let error = console.error;
 
 // shortcuts for vanilla js
 let $id = el => document.getElementById(el);
@@ -28,6 +30,13 @@ let sqrt = x => Math.sqrt(x);
 let exp = x => Math.exp(x);
 let ln = x => Math.log(x);
 
+// simplifying minimum and maximum
+let min = Math.min;
+let max = Math.max;
+
+
+
+
 // absolute value |x|
 let abs = x => Math.abs(x);
 
@@ -36,12 +45,6 @@ let $anim = (func, step, interval) => {
 	let st = () => setTimeout(func, step);
 	let intr = () => setInterval(st, interval);
 	intr();
-}
-
-// special function to play animation with window.requestAnimationFrame
-let animateFrame = func => {
-    func();
-    window.requestAnimFrame(animateFrame)
 }
 
 // !!!  special functions which we will need
@@ -475,6 +478,28 @@ let skewY = (mat,deg) => {
 	return res;
 }
 
+// Rotate point around point [px,py] to angle dt
+let rotp = (x,y, px, py, dt, cw = true) => {
+	if (!cw) {
+		dt *= -1;
+	}
+	let xx = x - px, yy = y - py;
+	let rx = xx*Math.cos(dt) - yy*Math.sin(dt) + px;
+	let ry = xx*Math.sin(dt) + yy*Math.cos(dt) + py;
+	return [rx,ry];
+}
+
+// Rotate the body to DT angle
+let rotC = (mat, dt) => {
+	let nmat = [],
+		 cn = cntr(mat),
+		 px = cn[0],
+		 py = cn[1];		
+	for (let i=0; i<mat.length; i++) {
+		nmat[i] = rotp(mat[i][0],mat[i][1],px,py,dt);
+	}
+	return nmat;
+}
 
 
 // this function translates each point of path differently
@@ -543,6 +568,22 @@ let stretch = (mat, deg, k) => {
 		res.push([xx+cx,yy+cy]);
 	}
 	return res;
+}
+
+// extract x values of a path, and y values in different arrays
+let extractXY = path => {
+	let xx = [], yy = [];
+	for (let i = 0; i < path.length; i++) {
+		xx.push(path[i][0]);
+		yy.push(path[i][1]);
+	}
+	return [xx,yy];
+}
+
+// Get min and max values of X and Y of a Path
+let minmax = path => {
+	let ext = extractXY(path);
+	return [[min(...ext[0]),min(...ext[1])], [max(...ext[0]),max(...ext[1])]];
 }
 
 
@@ -645,6 +686,30 @@ let mpathN = (pth,n) => {
 	}
 	return res;
 }
+
+
+// Check if path has reached the border of canvas
+// Also check if motion is into canvas or out.
+// we need it in animations
+let borders = (path,w,h,dx,dy) => {
+	let res = [0,0];
+	path.forEach(p => {
+		if (p[0]<1 && (p[0]+dx)<p[0]) res[0] = 1;
+		if (p[0]<1 && (p[0]+dx)>=p[0]) res[0] = 0;
+		if (p[0]>w-1 && (p[0]+dx)>p[0]) res[0] = 1;
+		if (p[0]>w-1 && (p[0]+dx)<=p[0]) res[0] = 0;
+		if (p[1]<1 && (p[1]+dy)<p[1]) res[1] = 1;
+		if (p[1]<1 && (p[1]+dy)>=p[1]) res[1] = 0;
+		if (p[1]>h-1 && (p[1]+dy)>p[1]) res[1] = 1;
+		if (p[1]>h-1 && (p[1]+dy)<=p[1]) res[1] = 0;
+		if (res[0]==1 || res[1]==1) {
+			return res;
+		}
+	});
+	return res;
+}
+
+
 
 // ---- Main code for manipulating canvas------------------------
 
@@ -884,7 +949,8 @@ function CnvMaker ()  {
 		for (let i=0; i<mat.length; i++) {
 			nmat[i] = this.rotp(mat[i][0],mat[i][1],px,py,dt);
 		}
-		this.path(nmat,col,w, cap)
+		this.path(nmat,col,w, cap);
+		return nmat;
 	}
 	
 	this.text = (txt,x,y,family,size,col) => {
