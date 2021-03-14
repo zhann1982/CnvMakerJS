@@ -733,7 +733,7 @@ function CnvMaker ()  {
 		// this.canvasNode.style.margin = '10px';
 		
 		// put that canvas node to document body or DOM element
-		if (el === "body") {
+		if (el === document.body || el === 'body') {
 			document.body.appendChild(this.canvasNode);
 		} else {
 			$qu(el).appendChild(this.canvasNode);
