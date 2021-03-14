@@ -1,15 +1,16 @@
 // Canvas framework for simplest 2d drawings and animation
 
-
+// Create polygon from points. setup colors and line width of edges
+// "color" is for edges, "fillColor" is for filling inside of polygon
 class Polygon {
-    constructor(name, path,color,fillColor,lineWidth) {
+    constructor(name, path,color,fillColor,lineWidth,lineCap) {
         this.polygon = {
             name,
             path,
             color,
             fillColor,
             lineWidth,
-            lineCap : 'round'   // default
+            lineCap : lineCap || 'round'   // default
         }
     }
 }
