@@ -16,10 +16,10 @@ let counter = closure();
 class Polygon {
     constructor(obj) {
         this.name = obj.name || 'polygon' + counter();
-        this.path = obj.path;
-        this.color = obj.color;
-        this.fillColor = obj.fillColor;
-        this.lineWidth = obj.lineWidth;
+        this.path = obj.path || [[0,0],[0,0]];
+        this.color = obj.color || 'black';
+        this.fillColor = obj.fillColor || 'gray';
+        this.lineWidth = obj.lineWidth || 1;
         this.lineCap = obj.lineCap || 'round';
         this.lineJoin = obj.lineJoin || 'miter';
     }
@@ -34,15 +34,26 @@ class CnvMaker2 {
 		this.ctx = this.canvasNode.getContext('2d');
 		
 		// Set canvas width and height
-		this.canvasNode.width = w;
-		this.canvasNode.height = h;
+		this.canvasNode.width = w || 300;
+		this.canvasNode.height = h || 200;
+
+        // Save canvas width and height
+        this.width = w || 300;
+		this.height = h || 200;
 		
 		// Append canvas node to DOM element
-		if (el === document.body || el === 'body') {
+		if (el === document.body || el === 'body' || el instanceof HTMLBodyElement) {
 			document.body.appendChild(this.canvasNode);
-		} else {
+		} else if (el instanceof String) {
 			document.querySelector(el).appendChild(this.canvasNode);
-		}
+		} else if (el instanceof HTMLElement) {
+            el.appendChild(this.canvasNode);
+        } else {
+            let rootDiv = document.createElement('div');
+            rootDiv.setAttribute('id','root');
+            rootDiv.appendChild(this.canvasNode);
+            document.body.appendChild(rootDiv);
+        }
 
         // List of objects to draw
         this.polygons = [];
@@ -109,5 +120,6 @@ let poly1 = new Polygon({
     lineJoin: 'miter'
 });
 
-let c = new CnvMaker2('#root',1200,600);
+
+let c = new CnvMaker2(root,1200,600);
 c.polygon(poly1);
