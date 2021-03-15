@@ -31,3 +31,11 @@
 // }
 
 // frame();
+
+const f1 = () => {
+    let k = 0;
+    return function(){
+        return k++;
+    }
+}
+

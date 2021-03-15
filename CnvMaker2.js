@@ -3,15 +3,14 @@
 // Create polygon from points. setup colors and line width of edges
 // "color" is for edges, "fillColor" is for filling inside of polygon
 class Polygon {
-    constructor(name, path,color,fillColor,lineWidth,lineCap) {
-        this.polygon = {
-            name,
-            path,
-            color,
-            fillColor,
-            lineWidth,
-            lineCap : lineCap || 'round'   // default
-        }
+    constructor(obj) {
+        this.name = obj.name || '';
+        this.path = obj.path;
+        this.color = obj.color;
+        this.fillColor = obj.fillColor;
+        this.lineWidth = obj.lineWidth;
+        this.lineCap = obj.lineCap || 'round';
+        this.lineJoin = obj.lineJoin || 'miter';
     }
 }
 class CnvMaker2 {
@@ -71,11 +70,28 @@ class CnvMaker2 {
 		}
 		this.ctx.stroke();
 	}
+
+    polygon (polygon) {
+        this.ctx.strokeStyle = polygon.color;
+		this.ctx.lineWidth = w;
+		this.ctx.lineJoin = join; // miter(default), bevel, round
+		this.ctx.beginPath();
+		this.ctx.moveTo(mat[0][0],mat[0][1]);
+		for (let i=1; i<mat.length; i++) {
+			this.ctx.lineTo(mat[i][0],mat[i][1]);
+		}
+		this.ctx.closePath();
+		this.ctx.stroke();
+		this.ctx.fillStyle = fillCol;
+		this.ctx.fill();
+    }
 }
 
 let points = [[100,100],[200,100],[200,200],[100,200]];
 let poly1 = new Polygon('square1', points, 'red', 'lime', 3);
 
 let c = new CnvMaker2('#root',1200,600);
-c.path(poly1.polygon);
+c.path(poly1);
+
+
 
