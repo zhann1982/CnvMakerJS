@@ -1,10 +1,21 @@
 // Canvas framework for simplest 2d drawings and animation
 
+// Closure for creating counters
+const closure = () => {
+    let k = 1;
+    return function(){
+        return k++;
+    }
+}
+
+// counter that gives us next natural number, starting from 0
+let counter = closure();
+
 // Create polygon from points. setup colors and line width of edges
 // "color" is for edges, "fillColor" is for filling inside of polygon
 class Polygon {
     constructor(obj) {
-        this.name = obj.name || '';
+        this.name = obj.name || 'polygon' + counter();
         this.path = obj.path;
         this.color = obj.color;
         this.fillColor = obj.fillColor;
@@ -63,6 +74,7 @@ class CnvMaker2 {
 		this.ctx.strokeStyle = polygon.color;
 		this.ctx.lineWidth = polygon.lineWidth;
 		this.ctx.lineCap = polygon.lineCap;
+		this.ctx.lineJoin = polygon.lineJoin;
 		this.ctx.beginPath();
 		this.ctx.moveTo(polygon.path[0][0],polygon.path[0][1]);
 		for (let i=1; i<polygon.path.length; i++) {
@@ -73,25 +85,29 @@ class CnvMaker2 {
 
     polygon (polygon) {
         this.ctx.strokeStyle = polygon.color;
-		this.ctx.lineWidth = w;
-		this.ctx.lineJoin = join; // miter(default), bevel, round
+		this.ctx.lineWidth = polygon.lineWidth;
+		this.ctx.lineJoin = polygon.lineJoin; // miter(default), bevel, round
 		this.ctx.beginPath();
-		this.ctx.moveTo(mat[0][0],mat[0][1]);
-		for (let i=1; i<mat.length; i++) {
-			this.ctx.lineTo(mat[i][0],mat[i][1]);
+		this.ctx.moveTo(polygon.path[0][0],polygon.path[0][1]);
+		for (let i=1; i<polygon.path.length; i++) {
+			this.ctx.lineTo(polygon.path[i][0],polygon.path[i][1]);
 		}
 		this.ctx.closePath();
 		this.ctx.stroke();
-		this.ctx.fillStyle = fillCol;
+		this.ctx.fillStyle = polygon.fillColor;
 		this.ctx.fill();
     }
 }
 
 let points = [[100,100],[200,100],[200,200],[100,200]];
-let poly1 = new Polygon('square1', points, 'red', 'lime', 3);
+let poly1 = new Polygon({
+    path: points,
+    color: 'red',
+    fillColor: 'lime',
+    lineWidth: 3,
+    lineCap: 'round',
+    lineJoin: 'miter'
+});
 
 let c = new CnvMaker2('#root',1200,600);
-c.path(poly1);
-
-
-
+c.polygon(poly1);
