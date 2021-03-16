@@ -121,5 +121,6 @@ let poly1 = new Polygon({
 });
 
 
+
 let c = new CnvMaker2(root,1200,600);
 c.polygon(poly1);
