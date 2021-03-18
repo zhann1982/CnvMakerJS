@@ -16,16 +16,32 @@ let center = path => {
     
 }
 
-// Primitive with siplest properties
-class Primitive {
+// class for Styles. Notice: this class doesn't affect current styles of context
+class Styles {
     constructor(obj) {
-        this.name = obj.name || 'primitive' + counter();
         this.color = obj.color || 'black';
         this.fillColor = obj.fillColor || 'transparent';
         this.lineWidth = obj.lineWidth || 1;
         this.lineCap = obj.lineCap || 'round';
         this.lineJoin = obj.lineJoin || 'miter';
     }
+}
+
+// Primitive with siplest properties
+class Primitive extends Styles {
+    constructor(obj) {
+        super(obj);
+        this.name = obj.name || 'primitive' + counter();
+        this.pivot1 = obj.pivot1;
+        this.pivot2 = obj.pivot2;
+        this.start = obj.start;
+        this.end = obj.end;
+    }
+}
+
+// Primitive for text
+class Text extends Primitive {
+    
 }
 
 // Create polygon from points. setup colors and line width of edges
@@ -53,6 +69,17 @@ class Arc extends Primitive {
         this.radius = obj.radius || 120;
         this.angles = obj.angles || [0, 2*Math.PI]; // radians only
         this.ccw = obj.ccw; // counterclockwise or not
+    }
+}
+
+// special class for bezier and quadratic curves
+class Curve extends Primitive {
+    constructor(obj) {
+        super(obj);
+        this.start = obj.center;
+        this.end = obj.radius;
+        this.pivot1 = obj.pivot1;
+        this.pivot2 = obj.pivot2;
     }
 }
 
@@ -135,29 +162,119 @@ class CnvMaker2 {
         this.objectsArray = [];
     }
 
+    // change or get canvas width
+    get canvasWidth() {
+        return this.width;
+    }
+    set canvasWidth(newValue) {
+        this.canvasNode.width = newValue;
+        this.width = newValue;
+    }
+
+    // change or get canvas height
+    get canvasHeight() {
+        return this.height;
+    }
+    set canvasHeight(newValue) {
+        this.canvasNode.height = newValue;
+        this.height = newValue;
+    }
+
     // Resize canvas node
-    resize (w,h) {
+    resizeCanvas (w,h) {
         this.canvasNode.width = w;
-		this.canvasNode.height = h;	
+		this.canvasNode.height = h;
+        this.width = w;
+		this.height = h;	
     }
 
     // Delete canvas node
-    delete () {
+    deleteCanvas () {
 		this.canvasNode.remove();
 	}
 
     // Clear whole canvas
-    clear () {
+    clearCanvas () {
 		this.ctx.clearRect(0,0,this.canvasNode.width,this.canvasNode.height);
 	}
 
     // Fill whole canvas with color
-    fill (col) {
+    fillCanvas (col) {
 		this.ctx.fillStyle = col;
 		this.ctx.fillRect(0,0,this.canvasNode.width,this.canvasNode.height);
 	}
 
-    // draw path through points
+    // Simplify basic methods of canvas
+    // color of lines/edges
+    get strokeStyle () {
+        return this.ctx.strokeStyle;
+    }
+    set strokeStyle (arg) {
+        this.ctx.strokeStyle = (arg.constructor.name === 'Object')? arg.color : arg;
+        // Here we have to check if argument is an object or a value
+    }
+    // color for filling
+    get fillStyle () {
+        return this.ctx.fillStyle;
+    }
+    set fillStyle (arg) {
+        this.ctx.fillStyle = (arg.constructor.name === 'Object')? arg.fillColor : arg;
+        // Here we have to check if argument is an object or a value
+    }
+    // line/edge width
+    get lineWidth () {
+        return this.ctx.lineWidth;
+    }
+    set lineWidth (arg) {
+        this.ctx.lineWidth = (arg.constructor.name === 'Object')? arg.lineWidth : arg;
+        // Here we have to check if argument is an object or a value
+    }
+    // line/edge cap : "butt" , "round" , "square"
+    get lineCap () {
+        return this.ctx.lineCap;
+    }
+    set lineCap (arg) {
+        this.ctx.lineCap = (arg.constructor.name === 'Object')? arg.lineCap : arg;
+        // Here we have to check if argument is an object or a value
+    }
+    // line/edge join : "bevel" , "round" , "miter";
+    get lineJoin () {
+        return this.ctx.lineJoin;
+    }
+    set lineJoin (arg) {
+        this.ctx.lineJoin = (arg.constructor.name === 'Object')? arg.lineJoin : arg;
+        // Here we have to check if argument is an object or a value
+    }
+    // fill with color which was defined with fillStyle method
+    fill () {
+        this.ctx.fill();
+    }
+    // begin/start new path
+    beginPath () {
+        this.ctx.beginPath();
+    }
+    // close/end new path
+    closePath () {
+        this.ctx.closePath();
+    }
+    // move to the starting point of new stroke/line
+    moveTo (arr) {
+        this.ctx.moveTo(...arr); // only array with 2 values allowed here. example [2, 6]
+    }
+    // move to the next point of stroke/line
+    lineTo (arr) {
+        this.ctx.lineTo(...arr); // only array with 2 values allowed here. example [2, 6]
+    }
+    // draw the line/edge
+    stroke () {
+        this.ctx.stroke();
+    }
+    //
+    arcTo (obj) {
+        this.ctx.arcTo(...obj.pivot1, ...obj.pivot2, obj.radius);
+    }
+
+    // draw path through points/vertices
     path (polygon) {
 		this.ctx.strokeStyle = polygon.color;
 		this.ctx.lineWidth = polygon.lineWidth;
@@ -171,10 +288,11 @@ class CnvMaker2 {
 		this.ctx.stroke();
 	}
 
+    // draw polygon and fill it with color. Also edges have different color
     polygon (polygon) {
         this.ctx.strokeStyle = polygon.color;
 		this.ctx.lineWidth = polygon.lineWidth;
-		this.ctx.lineJoin = polygon.lineJoin; // miter(default), bevel, round
+		this.ctx.lineJoin = polygon.lineJoin;
 		this.ctx.beginPath();
 		this.ctx.moveTo(polygon.path[0][0],polygon.path[0][1]);
 		for (let i=1; i<polygon.path.length; i++) {
@@ -186,6 +304,7 @@ class CnvMaker2 {
 		this.ctx.fill();
     }
 
+    // draw arc according to center and angles
     arc (arc) {
 		this.ctx.strokeStyle = arc.color;
 		this.ctx.lineWidth = arc.lineWidth;
@@ -202,6 +321,20 @@ class CnvMaker2 {
         );
 		this.ctx.stroke();
 	}
+
+    // draw arc according to start point and two pivot points. It is like quadratic curve, but the curve is pure circle's section
+    arcXY (obj) {
+        this.ctx.strokeStyle = obj.color;
+		this.ctx.lineWidth = obj.lineWidth;
+		this.ctx.lineJoin = obj.lineJoin;
+        this.ctx.lineCap = obj.lineCap;
+		this.ctx.beginPath();
+		this.moveTo(obj.start);
+        this.arcTo(obj);
+        this.lineTo(obj.end);
+		//this.ctx.closePath();
+		this.ctx.stroke();
+    }
 
     segment (arc) {
         this.ctx.strokeStyle = arc.color;
@@ -309,6 +442,10 @@ class CnvMaker2 {
 		this.ctx.fill();
     }
 
+    clearRect(rectangle) {
+        this.ctx.clearRect(...rectangle.corner, rectangle.width, rectangle.height);
+    }
+
     ellipse (ellipse) {
         this.ctx.strokeStyle = ellipse.color;
 		this.ctx.lineWidth = ellipse.lineWidth;
@@ -375,113 +512,44 @@ class CnvMaker2 {
 
 // creating pathes and objects
 let points = [[100,100],[200,100],[200,200],[100,200]];
-let poly1 = new Polygon({
-    path: points,
-    color: 'red',
-    fillColor: 'lime',
-    lineWidth: 3,
-    lineCap: 'round',
-    lineJoin: 'miter'
-});
-let arc1 = new Arc({
-    name: 'arc1',
-    color: 'blue',
-    fillColor: 'yellow',
-    lineWidth: 6,
-    lineJoin: 'round',
-    center: [200,300],
-    radius: 300,
-    angles: [0,0.7]
-});
-let rect1 = new Rectangle({
-    color: 'blue',
-    fillColor: 'red',
-    lineWidth: 3,
-    lineCap: 'round',
-    lineJoin: 'miter',
-    width: 100,
-    height: 230,
-    corner: [50,420]
-});
+
+let poly1 = new Polygon(
+    {
+        path: points,
+        color: 'red',
+        fillColor: 'lime',
+        lineWidth: 3,
+        lineCap: 'round',
+        lineJoin: 'miter'
+    }
+);
+
+let rect1 = new Rectangle(
+    {
+        color: 'blue',
+        fillColor: 'red',
+        lineWidth: 3,
+        lineCap: 'round',
+        lineJoin: 'miter',
+        width: 100,
+        height: 230,
+        corner: [50,420]
+    }
+);
 
 // creating canvas in special div block
 let c = new CnvMaker2(root,1200,600);
 
 // drawing predefined objects
-c.polygon(poly1);
-c.rectangle(rect1);
+c.path(poly1);
 
-// drawing objects while declaring them
-c.sector({
-    color: 'red',
-    fillColor: 'magenta',
-    lineWidth: 3,
-    lineJoin: 'miter',
-    center: [300,400],
-    radius: 100,
-    angles: [0,1.7]
-});
-
-c.circle({
-    color: 'red',
-    lineWidth: 3,
-    center: [500,100],
-    radius: 100
-});
-
-c.disk({
-    color: 'black',
-    fillColor: '#000b', // hex color with alpha opacity
-    lineWidth: 3,
-    center: [500,300],
-    radius: 70
-});
-
-c.rectangle({
-    color: 'pink',
-    fillColor: 'aquamarine', // hex color with alpha opacity
-    lineWidth: 3,
-    corner: [50,250],
-    width: 200,
-    height: 150
-});
-
-c.square({
-    color: 'gray',
-    fillColor: 'brown', // hex color with alpha opacity
-    lineWidth: 2,
-    corner: [250,450],
-    width: 100
-});
-
-c.ellipse({
-    color: 'red',
-    fillColor: 'green',
-    lineWidth: 3,
-    center: [300,100],
-    radiusX: 150,
-    radiusY: 100,
-    rotation: 0
-});
-
-c.ellipseSegment({
-    color: 'red',
-    fillColor: 'lightgreen',
-    lineWidth: 3,
-    center: [300,100],
-    radiusX: 150,
-    radiusY: 100,
-    rotation: 0,
-    angles: [0,2]
-});
-
-c.ellipseSector({
-    color: 'black',
-    fillColor: 'purple',
-    lineWidth: 3,
-    center: [300,100],
-    radiusX: 150,
-    radiusY: 100,
-    rotation: 0,
-    angles: [2,3]
-});
+c.arcXY(
+    {
+        start: [500,100],
+        pivot1: [500,300],
+        pivot2: [300,200],
+        end: [200, 100],
+        radius: 80,
+        color: 'green'
+    }
+);
