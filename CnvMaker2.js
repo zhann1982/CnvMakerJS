@@ -11,19 +11,14 @@ const closure = () => {
 // counter that gives us next natural number, starting from 0
 let counter = closure();
 
-// special function to give the geometrical center of a path
-let center = path => {
-    
-}
-
 // class for Styles. Notice: this class doesn't affect current styles of context
 class Styles {
     constructor(obj) {
         this.color = obj.color || 'black';
         this.fillColor = obj.fillColor || 'transparent';
         this.lineWidth = obj.lineWidth || 1;
-        this.lineCap = obj.lineCap || 'round';
-        this.lineJoin = obj.lineJoin || 'miter';
+        this.lineCap = obj.lineCap || 'round';  // "butt" , "round" , "square"
+        this.lineJoin = obj.lineJoin || 'miter'; // "bevel" , "round" , "miter"
     }
 }
 
@@ -32,16 +27,29 @@ class Primitive extends Styles {
     constructor(obj) {
         super(obj);
         this.name = obj.name || 'primitive' + counter();
-        this.pivot1 = obj.pivot1;
-        this.pivot2 = obj.pivot2;
-        this.start = obj.start;
-        this.end = obj.end;
+        this.pivot1 = obj.pivot1; // only array [a, b]
+        this.pivot2 = obj.pivot2; // only array [a, b]
+        this.start = obj.start;  // only array [a, b]
+        this.end = obj.end;  // only array [a, b]
     }
 }
 
 // Primitive for text
 class Text extends Primitive {
-    
+    constructor(obj) {
+        // use this.start to put starting point of the text
+        super(obj);
+        this.font = obj.font;  // default : "10px sans-serif" // same as css fonts
+        this.maxWidth = obj.maxWidth; //max width of a text line
+        this.text = obj.text;
+        this.textAlign = obj.textAlign; // start, end, left, right, center
+        this.textBaseline = obj.textBaseline; // top, hanging, middle, alphabetic, ideographic, bottom
+        this.direction = obj.direction; // ltr, rtl, inherit
+    }
+
+    // getTextWidth () {
+    //     let width = this.ctx.measure
+    // }
 }
 
 // Create polygon from points. setup colors and line width of edges
@@ -50,6 +58,7 @@ class Polygon extends Primitive{
     constructor(obj) {
         super(obj);
         this.path = obj.path || [[0,0],[0,0]];
+        
     }
 
     getCenter () {
