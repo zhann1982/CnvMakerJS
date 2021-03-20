@@ -33,3 +33,67 @@
 // frame();
 
 
+
+
+// Testing classes
+
+// creating pathes and objects
+let points = [[100,100],[200,100],[200,200],[100,200]];
+
+let poly1 = new Polygon(
+    {
+        path: points,
+        color: 'red',
+        fillColor: 'lime',
+        lineWidth: 3,
+        lineCap: 'round',
+        lineJoin: 'miter',
+        shadowColor: '#444',
+        shadowBlur: 20
+    }
+);
+
+let rect1 = new Rectangle(
+    {
+        color: 'blue',
+        fillColor: 'red',
+        lineWidth: 3,
+        lineCap: 'round',
+        lineJoin: 'miter',
+        width: 100,
+        height: 230,
+        corner: [50,420]
+    }
+);
+
+// creating canvas in special div block
+let c = new CnvMaker2(root,1200,600);
+
+// drawing predefined objects
+c.polygon(poly1);
+
+c.arcXY(
+    {
+        start: [500,100],
+        pivot1: [500,300],
+        pivot2: [300,200],
+        end: [200, 100],
+        radius: 80,
+        color: 'green'
+    }
+);
+
+let text1 = new Text(
+    {
+        type: 'stroke',
+        color: 'blue',
+        fillColor: 'red',
+        lineWidth: 2,
+        text: 'Hello world',
+        font: 'bold 2em Tahoma',
+        start : [100,300]
+    }
+);
+
+c.text(text1);
+console.log(c.getTextWidth(text1));

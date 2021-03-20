@@ -19,6 +19,10 @@ class Styles {
         this.lineWidth = obj.lineWidth || 1;
         this.lineCap = obj.lineCap || 'round';  // "butt" , "round" , "square"
         this.lineJoin = obj.lineJoin || 'miter'; // "bevel" , "round" , "miter"
+        this.shadowColor = obj.shadowColor;
+        this.shadowBlur = obj.ShadowBlur;
+        this.shadowOffsetX = obj.shadowOffsetX;
+        this.shadowOffsetY = obj.shadowOffsetY;
     }
 }
 
@@ -45,11 +49,8 @@ class Text extends Primitive {
         this.textAlign = obj.textAlign; // start, end, left, right, center
         this.textBaseline = obj.textBaseline; // top, hanging, middle, alphabetic, ideographic, bottom
         this.direction = obj.direction; // ltr, rtl, inherit
+        this.type = obj.type; // stroke or fill
     }
-
-    // getTextWidth () {
-    //     let width = this.ctx.measure
-    // }
 }
 
 // Create polygon from points. setup colors and line width of edges
@@ -514,51 +515,26 @@ class CnvMaker2 {
         this.ctx.fillStyle = ellipse.fillColor;
 		this.ctx.fill();
     }
+
+    // write text with fillText
+    text (text) {
+        this.ctx.strokeStyle = text.color;
+        this.ctx.fillStyle = text.fillColor;
+        this.ctx.lineWidth = text.lineWidth;
+        this.ctx.font = text.font;
+        this.ctx.maxWidth = text.maxWidth;
+        this.ctx.textAlign = text.textAlign;
+        this.ctx.textBaseline = text.textBaseline;
+        this.ctx.direction = text.direction;
+        this.ctx.type = text.type;
+        if (text.type === 'stroke') {
+            this.ctx.strokeText(text.text, ...text.start);
+        } else {
+            this.ctx.fillText(text.text, ...text.start);
+        }
+    }
+
+    getTextWidth(text) {
+        return this.ctx.measureText(text.text).width;
+    }
 }
-
-
-// Testing classes
-
-// creating pathes and objects
-let points = [[100,100],[200,100],[200,200],[100,200]];
-
-let poly1 = new Polygon(
-    {
-        path: points,
-        color: 'red',
-        fillColor: 'lime',
-        lineWidth: 3,
-        lineCap: 'round',
-        lineJoin: 'miter'
-    }
-);
-
-let rect1 = new Rectangle(
-    {
-        color: 'blue',
-        fillColor: 'red',
-        lineWidth: 3,
-        lineCap: 'round',
-        lineJoin: 'miter',
-        width: 100,
-        height: 230,
-        corner: [50,420]
-    }
-);
-
-// creating canvas in special div block
-let c = new CnvMaker2(root,1200,600);
-
-// drawing predefined objects
-c.path(poly1);
-
-c.arcXY(
-    {
-        start: [500,100],
-        pivot1: [500,300],
-        pivot2: [300,200],
-        end: [200, 100],
-        radius: 80,
-        color: 'green'
-    }
-);
