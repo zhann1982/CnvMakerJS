@@ -35,6 +35,12 @@ class Primitive extends Styles {
         this.pivot2 = obj.pivot2; // only array [a, b]
         this.start = obj.start;  // only array [a, b]
         this.end = obj.end;  // only array [a, b]
+
+        // special keys for motion
+        this.linearSpeed = obj.linearSpeed;  //  array with shift values [dx, dy]
+        this.angularSpeed = obj.angularSpeed  // change of angle for rotation
+        this.linearAcceleration = obj.linearAcceleration  // change of linear speed
+        this.angularAcceleration = obj.angularAcceleration  // change of angular speed
     }
 }
 
@@ -59,9 +65,9 @@ class Polygon extends Primitive{
     constructor(obj) {
         super(obj);
         this.path = obj.path || [[0,0],[0,0]];
-        
     }
 
+    // get geometrical center
     getCenter () {
         let cx = 0, cy = 0;
         for (let i = 0; i < this.path.length; i++) {
@@ -79,17 +85,6 @@ class Arc extends Primitive {
         this.radius = obj.radius || 120;
         this.angles = obj.angles || [0, 2*Math.PI]; // radians only
         this.ccw = obj.ccw; // counterclockwise or not
-    }
-}
-
-// special class for bezier and quadratic curves
-class Curve extends Primitive {
-    constructor(obj) {
-        super(obj);
-        this.start = obj.center;
-        this.end = obj.radius;
-        this.pivot1 = obj.pivot1;
-        this.pivot2 = obj.pivot2;
     }
 }
 
@@ -137,6 +132,39 @@ class Ellipse extends Arc {
     }
 }
 
+class Random {
+    constructor(){}
+
+    element (arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    natural (min,max) {
+        return Math.ceil(min) + Math.round((max-min)*Math.random());
+    }
+
+    real (min,max) {
+        return min + (max-min)*Math.random();
+    }
+
+    angle () {
+        return this.real(0,2*Math.PI);
+    }
+
+    color (opacity) {
+        let r = Math.round((255)*Math.random()),
+		    g = Math.round((255)*Math.random()),
+		    b = Math.round((255)*Math.random());
+	return `rgba(${r}, ${g}, ${b}, ${opacity?opacity:1})`;
+    }
+
+    vector2D (minLength, maxLength) {
+        let length = this.real(minLength,maxLength),
+            angle = this.angle();
+        return [length*Math.cos(angle), length*Math.sin(angle)];
+    }
+}
+
 class CnvMaker2 {
 
     // Create and append canvas
@@ -157,7 +185,7 @@ class CnvMaker2 {
 		// Append canvas node to DOM element
 		if (el === document.body || el === 'body' || el instanceof HTMLBodyElement) {
 			document.body.appendChild(this.canvasNode);
-		} else if (el instanceof String) {
+		} else if (el.constructor.name === 'String') {
 			document.querySelector(el).appendChild(this.canvasNode);
 		} else if (el instanceof HTMLElement) {
             el.appendChild(this.canvasNode);
@@ -346,6 +374,23 @@ class CnvMaker2 {
 		this.ctx.stroke();
     }
 
+    point (obj) {
+        this.ctx.strokeStyle = obj.color;
+        this.ctx.fillStyle = obj.fillColor
+		this.ctx.lineWidth = obj.lineWidth;
+		this.ctx.beginPath();
+		this.ctx.arc(
+            obj.center[0],
+            obj.center[1],
+            obj.radius,
+            0,
+            2*Math.PI
+        );
+        this.ctx.closePath();
+		this.ctx.stroke();
+        this.ctx.fill();
+    }
+
     segment (arc) {
         this.ctx.strokeStyle = arc.color;
 		this.ctx.lineWidth = arc.lineWidth;
@@ -404,8 +449,6 @@ class CnvMaker2 {
     disk (disk) {
         this.ctx.strokeStyle = disk.color;
 		this.ctx.lineWidth = disk.lineWidth;
-        this.ctx.lineJoin = disk.lineJoin;
-		this.ctx.lineCap = disk.lineCap;
 		this.ctx.beginPath();
 		this.ctx.arc(
             disk.center[0],
@@ -534,7 +577,15 @@ class CnvMaker2 {
         }
     }
 
-    getTextWidth(text) {
+    getTextWidth (text) {
         return this.ctx.measureText(text.text).width;
+    }
+
+    animation (func) {
+        let frame = ()=> {
+            func();
+            window.requestAnimationFrame(frame);
+        }
+        frame();
     }
 }
