@@ -132,25 +132,31 @@ class Ellipse extends Arc {
     }
 }
 
+// special class for creating random values
 class Random {
     constructor(){}
 
+    // get random element of given array
     element (arr) {
         return arr[Math.floor(Math.random() * arr.length)];
     }
 
+    // get random natural number between Min and Max values
     natural (min,max) {
         return Math.ceil(min) + Math.round((max-min)*Math.random());
     }
 
+    // get random real number between Min and Max values
     real (min,max) {
         return min + (max-min)*Math.random();
     }
 
+    // get random angle value in radians between 0 and 2PI
     angle () {
         return this.real(0,2*Math.PI);
     }
 
+    // get random color in RGBA with given opacity
     color (opacity) {
         let r = Math.round((255)*Math.random()),
 		    g = Math.round((255)*Math.random()),
@@ -158,6 +164,7 @@ class Random {
 	return `rgba(${r}, ${g}, ${b}, ${opacity?opacity:1})`;
     }
 
+    // get random vector [x,y] with length between Min and Max values, and random angle
     vector2D (minLength, maxLength) {
         let length = this.real(minLength,maxLength),
             angle = this.angle();
@@ -587,5 +594,13 @@ class CnvMaker2 {
             window.requestAnimationFrame(frame);
         }
         frame();
+    }
+
+    setBlur (number) {
+        this.ctx.filter = `blur(${number}px)`;
+    }
+
+    clearBlur () {
+        this.ctx.filter = `blur(0px)`;
     }
 }

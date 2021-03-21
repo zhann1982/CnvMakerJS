@@ -36,29 +36,20 @@
 
 let c = new CnvMaker2('#root', 1200, 600);
 
-let animation1 = () => {
-    c.clearCanvas();
-    let cx = 300 + 100*Math.cos(angle),
-        cy = 200 + 100*Math.sin(angle);
-    c.circle({
-        lineWidth: 3,
-        color: 'blue',
-        radius: 15,
-        center: [cx,cy]
-    });
-    angle += 0.01;
-}
+// c.ctx.filter = 'blur(10px)';
+c.disk({
+    color: 'rgba(70,70,70,0.3)',
+    fillColor: 'rgba(70,70,70,0.3)',
+    lineWidth: 1,
+    radius: 30,
+    center: [100, 200] 
+ });
 
-let angle = 0;
-
-//c.animation(animation1);
-
-// console.log(new Random().color());
-// console.log(new Random().color());
-// console.log(new Random().color());
-// console.log(new Random().color());
-// console.log(new Random().color());
-// console.log(new Random().color());
-// console.log(new Random().color());
-// console.log(new Random().color());
-// console.log(new Random().color());
+// c.ctx.filter = 'blur(0px)';
+c.disk({
+   color: 'red',
+   fillColor: 'red',
+   lineWidth: 1,
+   radius: 20,
+   center: [200, 200] 
+});
