@@ -251,7 +251,14 @@ class pathGenerator {
         return path;
     }
 
-    
+    circularPath ({center, radius, phase, length}) {
+        let vertices = this.consecutiveNumbers({start: 0, end: 2*PI, length: length+1});
+        let path = [];
+        for (let i=0; i<length; i++) {
+            path.push( [ (center[0] + radius*cos(vertices[i] - phase - PI/2)) , (center[1] + radius*sin(vertices[i] - phase - PI/2)) ] );
+        }
+        return path;
+    }
 }
 
 class CnvMaker2 {
@@ -717,6 +724,23 @@ class CnvMaker2 {
 
     clearBlur () {
         this.ctx.filter = `blur(0px)`;
+    }
+
+    setOpacity (value) {
+        this.ctx.globalAlpha = value;
+    }
+
+    clearOpacity () {
+        this.ctx.globalAlpha = 1.0;
+    }
+
+    globalCompositeOperation (valueString) {
+        this.ctx.globalCompositeOperation = valueString;
+        // possible values: source-over, source-in, source-out, source-atop,
+        //                  destination-over, destination-in, destination-out, destination-atop,
+        //                  lighter, copy, xor, multiply, screen, overlay, darken, lighten, color-dodge
+        //                  color-burn, hard-light, soft-light, difference, exclusion, hue,
+        //                  saturation, color, luminosity, 
     }
 
     shadowPath (obj) {

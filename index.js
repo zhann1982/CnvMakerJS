@@ -41,56 +41,34 @@ let c = new CnvMaker2('#root', 1200, 600);
 // 	gridColor: '#ddd'
 // });
 
-let narray = (x,y,n) => {
-	if (typeof x == "number" && 
-		typeof y == "number" && 
-		typeof n == "number" && 
-		n%1==0 &&
-		n >= 2){
-
-		if (n==2){
-			return [x,y];
-		} else {
-			let dx = (y-x)/(n-1);
-			let arr = [];
-			arr.push(x);
-			for (let i=0; i<n-2; i++){
-				let xx = x+(y-x)*(i+1)/(n-1);
-				arr.push(xx);
-			}	
-			arr.push(y);
-			return arr;
-		}
-	} else {
-		return undefined;
-	}
-}
-let carray = (cx, cy, r, ph, n) => {
-	let arr = narray(0, 2*PI, n+1);
-	let res = [];
-	for (let i=0; i<n; i++) {
-		res.push( [ (cx + r*cos(arr[i] - ph - PI/2)) , (cy + r*sin(arr[i] - ph - PI/2)) ] );
-	}
-	return res;
-}
-
-c.polygon({
-   color: 'red',
-   fillColor: 'red',
-   lineWidth: 3,
-   path: carray(600,350, 100, 0, 5)
+let figs = new pathGenerator();
+let p1 = figs.circularPath({
+	center: [210,210],
+	radius: 90,
+	phase: PI/4,
+	length: 6
 });
 
 c.polygon({
-	color: 'green',
+   color: 'transparent',
+   fillColor: 'red',
+   lineWidth: 3,
+   path: p1
+});
+
+c.polygon({
+	color: 'transparent',
 	fillColor: 'green',
 	lineWidth: 3,
-	path: carray(300,350, 100, 0, 5)
+	path: new pathGenerator().circularPath({
+		center: [310,310],
+		radius: 120,
+		phase: PI/4,
+		length: 3
+	})
 });
 
 c.point({
 	center: [30,30],
 	radius: 3
 });
-
-console.log(new pathGenerator().straightPath({start:[0,0],end:[400,300],length:10}));
