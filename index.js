@@ -36,6 +36,11 @@
 
 let c = new CnvMaker2('#root', 1200, 600);
 
+// c.grid({
+// 	gridStep: 50,
+// 	gridColor: '#ddd'
+// });
+
 let narray = (x,y,n) => {
 	if (typeof x == "number" && 
 		typeof y == "number" && 
@@ -73,5 +78,19 @@ c.polygon({
    color: 'red',
    fillColor: 'red',
    lineWidth: 3,
-   path: carray(300,350, 100, 0, 5)
-})
+   path: carray(600,350, 100, 0, 5)
+});
+
+c.polygon({
+	color: 'green',
+	fillColor: 'green',
+	lineWidth: 3,
+	path: carray(300,350, 100, 0, 5)
+});
+
+c.point({
+	center: [30,30],
+	radius: 3
+});
+
+console.log(new pathGenerator().straightPath({start:[0,0],end:[400,300],length:10}));

@@ -209,10 +209,49 @@ class Random {
     }
 
     // get random point within rectangle, where START is upperleft corner and the END is bottomright corner
-    point (start,end) {
+    point ({start,end}) {
         return [Math.ceil(start[0]) + Math.round((end[0]-start[0])*Math.random()),
                 Math.ceil(start[1]) + Math.round((end[1]-start[1])*Math.random())];
     }
+
+    arrayOfRandomNumbers (obj) {
+        let array = [];
+        for (let i = 0; i < obj.length; i++) {
+            array.push(obj.minValue + (obj.maxValue-obj.minValue)*Math.random());
+        }
+    }
+}
+
+class pathGenerator {
+    constructor() {}
+
+    // get array of consecutive numbers between START value and END value
+    consecutiveNumbers ({start,end,length}) {
+        if (length>2) {
+			let arr = [];
+			arr.push(start);
+			for (let i=0; i<length-2; i++){
+				let next = start+(end-start)*(i+1)/(length-1);
+				arr.push(next);
+			}	
+			arr.push(end);
+			return arr;
+		} else {
+		    return undefined;
+	    }
+    }
+    
+    straightPath ({start,end,length}) {
+        let arrayX = this.consecutiveNumbers({start: start[0],end: end[0],length}), 
+            arrayY = this.consecutiveNumbers({start: start[1],end: end[1],length}),
+            path = [];
+        for (let i=0; i<length; i++) {
+            path.push([arrayX[i], arrayY[i]]);
+        }
+        return path;
+    }
+
+    
 }
 
 class CnvMaker2 {
@@ -713,7 +752,43 @@ class CnvMaker2 {
     }
 
     randomPoint () {
-        return [Math.ceil(0) + Math.round(this.width*Math.random()),
-                Math.ceil(0) + Math.round(this.height*Math.random())];
+        return [Math.round(this.width*Math.random()),
+                Math.round(this.height*Math.random())];
+    }
+
+    translateCanvas (dx,dy) {
+        this.ctx.translate(dx,dy);
+    }
+
+    scaleCanvas (coeffX,coeffY) {
+        this.ctx.scale(coeffX,coeffY);
+    }
+
+    originToCenter () {
+        this.translateCanvas(this.width/2, this.height/2);
+    }
+
+    grid (obj) {
+        this.gridStep = obj.gridStep;
+        this.gridColor = obj.gridColor;
+        
+        for ( let i = -2*this.width; i < 2*this.width; i += obj.gridStep ) {
+            this.line({
+                color: obj.gridColor,
+		        lineWidth: 1,
+		        lineCap: 'round',
+		        start: [i,-2*this.height],
+		        end: [i,2*this.height]
+            });
+        }
+        for ( let i = -2*this.height; i < 2*this.height; i += obj.gridStep ) {
+            this.line({
+                color: obj.gridColor,
+		        lineWidth: 1,
+		        lineCap: 'round',
+		        start: [-2*this.width,i],
+		        end: [2*this.width,i]
+            });
+        }
     }
 }
