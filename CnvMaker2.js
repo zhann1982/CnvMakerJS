@@ -9,7 +9,44 @@ const closure = () => {
 }
 
 // counter that gives us next natural number, starting from 0
-let counter = closure();
+let counterForName = closure();
+
+// make rgba colors functionally available
+let rgba = (r,g,b,op) => `rgba(${r}, ${g}, ${b}, ${op?op:1})` ;
+// make hsla colors functionally available
+let hsla = (h,s,l,op) => `hsla(${h}, ${s}, ${l}, ${op?op:1})` ;
+
+// shortcut for logging
+let log = console.log; 
+let dir = console.dir;
+let error = console.error;
+
+// shortcuts for vanilla js
+let $id = el => document.getElementById(el);
+let $qu = el => document.querySelector(el);
+let $quA = el => document.querySelectorAll(el);
+let $bd = document.body;
+
+// simplifying trig functions
+let sin = x => Math.sin(x);
+let cos = x => Math.cos(x);
+let tan = x => Math.tan(x);
+const PI =  Math.PI;
+const Tau = 2*PI;
+
+// simplifying square root
+let sqrt = x => Math.sqrt(x);
+
+// simplifying exponent and logarithm functions
+let exp = x => Math.exp(x);
+let ln = x => Math.log(x);
+
+// absolute value |x|
+let abs = x => Math.abs(x);
+
+// simplifying minimum and maximum
+let min = Math.min;
+let max = Math.max;
 
 // class for Styles. Notice: this class doesn't affect current styles of context
 class Styles {
@@ -30,7 +67,7 @@ class Styles {
 class Primitive extends Styles {
     constructor(obj) {
         super(obj);
-        this.name = obj.name || 'primitive' + counter();
+        this.name = obj.name || 'primitive' + counterForName();
         this.pivot1 = obj.pivot1; // only array [a, b]
         this.pivot2 = obj.pivot2; // only array [a, b]
         this.start = obj.start;  // only array [a, b]
@@ -169,6 +206,12 @@ class Random {
         let length = this.real(minLength,maxLength),
             angle = this.angle();
         return [length*Math.cos(angle), length*Math.sin(angle)];
+    }
+
+    // get random point within rectangle, where START is upperleft corner and the END is bottomright corner
+    point (start,end) {
+        return [Math.ceil(start[0]) + Math.round((end[0]-start[0])*Math.random()),
+                Math.ceil(start[1]) + Math.round((end[1]-start[1])*Math.random())];
     }
 }
 
@@ -318,6 +361,39 @@ class CnvMaker2 {
     arcTo (obj) {
         this.ctx.arcTo(...obj.pivot1, ...obj.pivot2, obj.radius);
     }
+
+    // draw line from START point to END point
+    line (obj) {
+		this.ctx.strokeStyle = obj.color;
+		this.ctx.lineWidth = obj.lineWidth;
+		this.ctx.lineCap = obj.lineCap;
+		this.ctx.beginPath();
+		this.ctx.moveTo(...obj.start);
+		this.ctx.lineTo(...obj.end);
+		this.ctx.stroke();
+	}
+
+    // draw quadratic curve
+	quadraticCurve (obj) {
+		this.ctx.strokeStyle = obj.color;
+		this.ctx.lineWidth = obj.lineWidth;
+		this.ctx.lineCap = obj.lineCap;
+		this.ctx.beginPath();
+		this.ctx.moveTo(...obj.start);
+		this.ctx.quadraticCurveTo(...obj.pivot1, ...obj.end);
+		this.ctx.stroke();
+	}
+	
+	// draw bezier curve
+	bezierCurve (obj) {
+		this.ctx.strokeStyle = obj.color;
+		this.ctx.lineWidth = obj.lineWidth;
+		this.ctx.lineCap = obj.lineCap;
+		this.ctx.beginPath();
+		this.ctx.moveTo(...obj.start);
+		this.ctx.quadraticCurveTo(...obj.pivot1, ...obj.pivot2, ...obj.end);
+		this.ctx.stroke();
+	}
 
     // draw path through points/vertices
     path (polygon) {
@@ -602,5 +678,42 @@ class CnvMaker2 {
 
     clearBlur () {
         this.ctx.filter = `blur(0px)`;
+    }
+
+    shadowPath (obj) {
+        this.setBlur(obj.shadowBlur);
+        this.ctx.strokeStyle = obj.shadowColor;
+		this.ctx.lineWidth = obj.lineWidth;
+		this.ctx.lineJoin = obj.lineJoin;
+        this.ctx.lineCap = obj.lineCap;
+		this.ctx.beginPath();
+		this.ctx.moveTo(obj.path[0][0] + obj.shadowOffsetX, obj.path[0][1] + obj.shadowOffsetY);
+		for (let i=1; i<obj.path.length; i++) {
+			this.ctx.lineTo(obj.path[i][0] + obj.shadowOffsetX, obj.path[i][1] + obj.shadowOffsetY);
+		}
+		this.ctx.stroke();
+        this.clearBlur();
+    }
+
+    shadowPolygon (obj) {
+        this.setBlur(obj.shadowBlur);
+        this.ctx.strokeStyle = obj.shadowColor;
+		this.ctx.lineWidth = obj.lineWidth;
+		this.ctx.lineJoin = obj.lineJoin;
+		this.ctx.beginPath();
+		this.ctx.moveTo(obj.path[0][0] + obj.shadowOffsetX, obj.path[0][1] + obj.shadowOffsetY);
+		for (let i=1; i<obj.path.length; i++) {
+			this.ctx.lineTo(obj.path[i][0] + obj.shadowOffsetX, obj.path[i][1] + obj.shadowOffsetY);
+		}
+		this.ctx.closePath();
+		this.ctx.stroke();
+		this.ctx.fillStyle = obj.shadowColor;
+		this.ctx.fill();
+        this.clearBlur();
+    }
+
+    randomPoint () {
+        return [Math.ceil(0) + Math.round(this.width*Math.random()),
+                Math.ceil(0) + Math.round(this.height*Math.random())];
     }
 }

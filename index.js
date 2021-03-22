@@ -36,20 +36,42 @@
 
 let c = new CnvMaker2('#root', 1200, 600);
 
-// c.ctx.filter = 'blur(10px)';
-c.disk({
-    color: 'rgba(70,70,70,0.3)',
-    fillColor: 'rgba(70,70,70,0.3)',
-    lineWidth: 1,
-    radius: 30,
-    center: [100, 200] 
- });
+let narray = (x,y,n) => {
+	if (typeof x == "number" && 
+		typeof y == "number" && 
+		typeof n == "number" && 
+		n%1==0 &&
+		n >= 2){
 
-// c.ctx.filter = 'blur(0px)';
-c.disk({
+		if (n==2){
+			return [x,y];
+		} else {
+			let dx = (y-x)/(n-1);
+			let arr = [];
+			arr.push(x);
+			for (let i=0; i<n-2; i++){
+				let xx = x+(y-x)*(i+1)/(n-1);
+				arr.push(xx);
+			}	
+			arr.push(y);
+			return arr;
+		}
+	} else {
+		return undefined;
+	}
+}
+let carray = (cx, cy, r, ph, n) => {
+	let arr = narray(0, 2*PI, n+1);
+	let res = [];
+	for (let i=0; i<n; i++) {
+		res.push( [ (cx + r*cos(arr[i] - ph - PI/2)) , (cy + r*sin(arr[i] - ph - PI/2)) ] );
+	}
+	return res;
+}
+
+c.polygon({
    color: 'red',
    fillColor: 'red',
-   lineWidth: 1,
-   radius: 20,
-   center: [200, 200] 
-});
+   lineWidth: 3,
+   path: carray(300,350, 100, 0, 5)
+})
