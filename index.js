@@ -36,54 +36,41 @@
 
 let c = new CnvMaker2('#root', 1200, 600);
 
-// c.globalCompositeOperation('xor');
-c.setOpacity(0.3);
+let arrayOfPoints = [],
+	numberOfPoints = 10,
+	rnd = new Random(),
+	matrixOfLinkLengthes = [];
 
-let arrayOfPathes = [],
-	numberOfPathes = 200,
-	rnd = new Random();
-
-for (let i = 0; i < numberOfPathes; i++) {
-	arrayOfPathes.push(
-		new Polygon
+for (let i = 0; i < numberOfPoints; i++) {
+	arrayOfPoints.push(
+		new Arc
 			({
-				color: 'transparent',
-				fillColor:  rnd.color(),
-				lineWidth: 1,
-				path: new pathGenerator().circularPath ({
-					center: rnd.point({
-						start: [0,0], 
-						end: [c.width, c.height]
-					}), 
-					radius: rnd.natural(28,68), 
-					phase: rnd.real(0,PI/2), 
-					length: 60
+				color: 'black',
+				lineWidth: 5,
+				center: rnd.point({
+					start: [100,100],
+					end: [1100,500]
 				}),
-				angularSpeed: 0.005*rnd.natural(2,10),
-				ccw: true,
-				// rotationCenter: [100,100],
-				linearSpeed: rnd.point({
-					start: [-3,-3], 
-					end: [3, 3]
-				})
+				radius: 5,
+				angles: [0,2*PI]
 			})
 	);
 }
 
-let frame = () => {
-	c.clearCanvas();
-	for (let i = 0; i < numberOfPathes; i++) {
-		if (arrayOfPathes[i].linearSpeed[0] === 0 || arrayOfPathes[i].linearSpeed[1] === 0) {
-			arrayOfPathes[i].linearSpeed = rnd.point({
-				start: [-3,-3], 
-				end: [3, 3]
-			})
-		}
-		c.polygon(arrayOfPathes[i]);
-		arrayOfPathes[i].rotate();
-		arrayOfPathes[i].move();
-		arrayOfPathes[i].checkBorderTouch(c, 100);
+let copyArray = [...arrayOfPoints];
+let mostLeftX = 1200,
+	mostLeftIndex = 0;
+for (let i = 0; i < arrayOfPoints.length; i++) {
+	if (arrayOfPoints[i].center[0] < mostLeftX) {
+		mostLeftX = arrayOfPoints[i].center[0];
+		mostLeftIndex = i;
 	}
 }
 
-c.animation(frame);
+for (let i = 0; i < arrayOfPoints.length-1; i++) {
+
+}
+
+for (let i = 0; i < numberOfPoints; i++) {
+	c.arc(arrayOfPoints[i]);
+}
