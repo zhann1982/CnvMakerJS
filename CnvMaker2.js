@@ -63,7 +63,7 @@ class Styles {
     }
 }
 
-// Primitive with siplest properties
+// Primitive with simplest properties
 class Primitive extends Styles {
     constructor(obj) {
         super(obj);
@@ -101,7 +101,7 @@ class Text extends Primitive {
     }
 }
 
-// Create polygon from points. setup colors and line width of edges
+// Create polygon from points. setup colors and line-width of edges
 // "color" is for edges, "fillColor" is for filling inside of polygon
 class Polygon extends Primitive{
     constructor(obj) {
@@ -138,12 +138,13 @@ class Polygon extends Primitive{
         }
     }
 
-    checkBorderTouch(canvas) {
+    checkBorderTouch(canvas, overflow = 0) {
+
         for (let i = 0; i < this.path.length; i++) {
-            if (this.path[i][0]<1 && (this.path[i][0]+this.linearSpeed[0])<this.path[i][0]) this.linearSpeed[0] *= -1;
-            if (this.path[i][0]>canvas.width-1 && (this.path[i][0]+this.linearSpeed[0])>this.path[i][0]) this.linearSpeed[0] *= -1;
-            if (this.path[i][1]<1 && (this.path[i][1]+this.linearSpeed[1])<this.path[i][1]) this.linearSpeed[1] *= -1;
-            if (this.path[i][1]>canvas.width-1 && (this.path[i][1]+this.linearSpeed[1])>this.path[i][1]) this.linearSpeed[1] *= -1;
+            if (this.path[i][0]<1 - overflow && (this.path[i][0]+this.linearSpeed[0])<this.path[i][0]) this.linearSpeed[0] *= -1;
+            if (this.path[i][0]>canvas.width-1 + overflow && (this.path[i][0]+this.linearSpeed[0])>this.path[i][0]) this.linearSpeed[0] *= -1;
+            if (this.path[i][1]<1 - overflow && (this.path[i][1]+this.linearSpeed[1])<this.path[i][1]) this.linearSpeed[1] *= -1;
+            if (this.path[i][1]>canvas.height-1 + overflow && (this.path[i][1]+this.linearSpeed[1])>this.path[i][1]) this.linearSpeed[1] *= -1;
         }
     }
 }
@@ -255,6 +256,7 @@ class Random {
     }
 }
 
+// special class for creating different pathes
 class pathGenerator {
     constructor() {}
 
@@ -292,8 +294,18 @@ class pathGenerator {
         }
         return path;
     }
+
+    rectangle ({center, width, height}) {
+        return [
+            [center[0] - width/2, center[1] - height/2],
+            [center[0] + width/2, center[1] - height/2],
+            [center[0] + width/2, center[1] + height/2],
+            [center[0] - width/2, center[1] + height/2]
+        ]
+    }
 }
 
+// main class for manipulating canvas
 class CnvMaker2 {
 
     // Create and append canvas
@@ -441,6 +453,7 @@ class CnvMaker2 {
         this.ctx.arcTo(...obj.pivot1, ...obj.pivot2, obj.radius);
     }
 
+    // methods for drawing 2D shapes
     // draw line from START point to END point
     line (obj) {
 		this.ctx.strokeStyle = obj.color;
@@ -657,6 +670,7 @@ class CnvMaker2 {
 		this.ctx.fill();
     }
 
+    // delete everything within borders of rectangle
     clearRect(rectangle) {
         this.ctx.clearRect(...rectangle.corner, rectangle.width, rectangle.height);
     }
@@ -743,18 +757,21 @@ class CnvMaker2 {
         return this.ctx.measureText(text.text).width;
     }
 
+    // special method for animating frames
     animation (func) {
-        let frame = ()=> {
+        let frame = () => {
             func();
             window.requestAnimationFrame(frame);
         }
         frame();
     }
 
+    // add blur effect to next drawings
     setBlur (number) {
         this.ctx.filter = `blur(${number}px)`;
     }
 
+    // reset blur effect to 'none'
     clearBlur () {
         this.ctx.filter = `blur(0px)`;
     }
