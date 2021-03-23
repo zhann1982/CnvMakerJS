@@ -72,12 +72,17 @@ class Primitive extends Styles {
         this.pivot2 = obj.pivot2; // only array [a, b]
         this.start = obj.start;  // only array [a, b]
         this.end = obj.end;  // only array [a, b]
+        this.ccw = obj.ccw;
 
         // special keys for motion
-        this.linearSpeed = obj.linearSpeed;  //  array with shift values [dx, dy]
-        this.angularSpeed = obj.angularSpeed  // change of angle for rotation
-        this.linearAcceleration = obj.linearAcceleration  // change of linear speed
-        this.angularAcceleration = obj.angularAcceleration  // change of angular speed
+        this.linearSpeed = obj.linearSpeed || [0,0];   //  array with shift values [dx, dy]
+        if (obj.angularSpeed) {
+            this.angularSpeed = (this.ccw)?(obj.angularSpeed*-1):obj.angularSpeed;   // change of angle for rotation
+        } else {
+            this.angularSpeed = 0;
+        }
+        this.linearAcceleration = obj.linearAcceleration;    // change of linear speed
+        this.angularAcceleration = obj.angularAcceleration;   // change of angular speed
     }
 }
 
@@ -112,6 +117,34 @@ class Polygon extends Primitive{
             cy += this.path[i][1];
         }
         return [cx/this.path.length, cy/this.path.length];
+    }
+
+    move (obj = {}) {
+        if (obj.linearSpeed) this.linearSpeed = obj.linearSpeed;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][0] += this.linearSpeed[0];
+            this.path[i][1] += this.linearSpeed[1];
+        }
+    }
+
+    rotate (obj = {}) {
+        if (obj.angularSpeed) this.angularSpeed = obj.angularSpeed;
+        this.rotationCenter = this.getCenter()
+        for (let i = 0; i < this.path.length; i++) {
+            let pointX = this.path[i][0] - this.rotationCenter[0], 
+                pointY = this.path[i][1] - this.rotationCenter[1];
+            this.path[i][0] = pointX*Math.cos(this.angularSpeed) - pointY*Math.sin(this.angularSpeed) + this.rotationCenter[0];
+            this.path[i][1] = pointX*Math.sin(this.angularSpeed) + pointY*Math.cos(this.angularSpeed) + this.rotationCenter[1];
+        }
+    }
+
+    checkBorderTouch(canvas) {
+        for (let i = 0; i < this.path.length; i++) {
+            if (this.path[i][0]<1 && (this.path[i][0]+this.linearSpeed[0])<this.path[i][0]) this.linearSpeed[0] *= -1;
+            if (this.path[i][0]>canvas.width-1 && (this.path[i][0]+this.linearSpeed[0])>this.path[i][0]) this.linearSpeed[0] *= -1;
+            if (this.path[i][1]<1 && (this.path[i][1]+this.linearSpeed[1])<this.path[i][1]) this.linearSpeed[1] *= -1;
+            if (this.path[i][1]>canvas.width-1 && (this.path[i][1]+this.linearSpeed[1])>this.path[i][1]) this.linearSpeed[1] *= -1;
+        }
     }
 }
 

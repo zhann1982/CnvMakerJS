@@ -36,39 +36,20 @@
 
 let c = new CnvMaker2('#root', 1200, 600);
 
-// c.grid({
-// 	gridStep: 50,
-// 	gridColor: '#ddd'
-// });
-
-let figs = new pathGenerator();
-let p1 = figs.circularPath({
-	center: [210,210],
-	radius: 90,
-	phase: PI/4,
-	length: 6
+let p1 = new Polygon({
+	color: 'black',
+	fillColor: 'red',
+	lineWidth: 2,
+	path: new pathGenerator().circularPath ({center:[100,100], radius: 50, phase: 0, length: 6}),
+	angularSpeed: 0.1,
+	ccw: true,
+	rotationCenter: [100,100],
+	linearSpeed: [2,3]
 });
 
-c.polygon({
-   color: 'transparent',
-   fillColor: 'red',
-   lineWidth: 3,
-   path: p1
-});
-
-c.polygon({
-	color: 'transparent',
-	fillColor: 'green',
-	lineWidth: 3,
-	path: new pathGenerator().circularPath({
-		center: [310,310],
-		radius: 120,
-		phase: PI/4,
-		length: 3
-	})
-});
-
-c.point({
-	center: [30,30],
-	radius: 3
+c.animation(function () {
+	c.fillCanvas('black');
+	c.polygon(p1);
+	p1.rotate();
+	p1.move();
 });
