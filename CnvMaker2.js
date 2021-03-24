@@ -866,3 +866,70 @@ class CnvMaker2 {
         }
     }
 }
+
+class Calculus2D {
+    constructor (obj) {
+        this.matrix = obj.matrix;
+        this.vector = obj.vector; // array with random length, all elements are numbers
+        this.point = obj.point;
+    }
+
+    isPoint (point) {
+        if (point.constructor.name !== 'Array') return false;
+        if (point.length !== 2) return false;
+        if (point[0].constructor.name !== 'Number' || point[1].constructor.name !== 'Number') return false;
+        if (Number.isNaN(point[0]) || Number.isNaN(point[1])) return false;
+        return true;
+    }
+
+    isVector (vector) {
+        if (vector.constructor.name !== 'Array') return false;
+        for (let i=0; i<vector.length; i++) {
+            if (vector[i].constructor.name !== 'Number' || Number.isNaN(vector[i])) return false;
+        }
+        return true;
+    }
+
+    isMatrix (matrix) {
+
+        if (matrix.constructor.name !== 'Array') return false;
+
+        let rowLength = matrix[0].length;
+
+        for (let i=0; i<matrix.length; i++) {
+
+            if (matrix[i].constructor.name !== 'Array') return false;
+            if (matrix[i].length !== rowLength) return false;
+
+            for (let j = 0; j < matrix[i].length; j++) {
+                if (matrix[i][j].constructor.name !== 'Number') return false;
+            }
+        }
+
+        return true;
+    }
+
+    isSquareMatrix (matrix) {
+        if (!this.isMatrix(matrix)) return false;
+        if (matrix.length !== matrix[0].length) return false;
+        return true;
+    }
+
+    vectorLength (vector) {
+        let length = 0;
+        for (let i=0; i<vector.length; i++) {
+            length += vector[i]**2;
+        }
+        return sqrt(length);
+    }
+
+    getUnitVector(vector) {
+        let length = this.vectorLength(vector),
+            unitVector = [];
+        for (let i=0; i<vector.length; i++) {
+            unitVector.push(vector[i]/length);
+        }
+        return unitVector;
+    }
+    
+}
