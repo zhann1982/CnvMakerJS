@@ -136,6 +136,8 @@ class Polygon extends Primitive{
             this.path[i][0] = pointX*Math.cos(this.angularSpeed) - pointY*Math.sin(this.angularSpeed) + this.rotationCenter[0];
             this.path[i][1] = pointX*Math.sin(this.angularSpeed) + pointY*Math.cos(this.angularSpeed) + this.rotationCenter[1];
         }
+
+        return this.path;
     }
 
     checkBorderTouch(canvas, overflow = 0) {
@@ -864,6 +866,28 @@ class CnvMaker2 {
 		        end: [2*this.width,i]
             });
         }
+    }
+
+    isPath (path) {
+        if (path.constructor.name !== 'Array') return false;
+
+        for (let i=0; i<path.length; i++) {
+
+            if (path[i].constructor.name !== 'Array') return false;
+            if (path[i].length !== 2) return false;
+
+            if (path[i][0].constructor.name !== 'Number') return false;
+            if (path[i][1].constructor.name !== 'Number') return false;
+            
+        }
+
+        return true;
+    }
+
+    isEmptyPath (path) {
+        if (path.constructor.name !== 'Array') return false;
+        if (path.length !== 0) return false;
+        return true;
     }
 }
 
