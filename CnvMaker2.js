@@ -107,6 +107,9 @@ class Polygon extends Primitive{
     constructor(obj) {
         super(obj);
         this.path = obj.path || [[0,0],[0,0]];
+        this.center = obj.center,
+        this.width = obj.width
+        this.height = obj.height
     }
 
     // get geometrical center
@@ -116,7 +119,8 @@ class Polygon extends Primitive{
             cx += this.path[i][0];
             cy += this.path[i][1];
         }
-        return [cx/this.path.length, cy/this.path.length];
+        this.center = [cx/this.path.length, cy/this.path.length];
+        return this.center;
     }
 
     move (obj = {}) {
