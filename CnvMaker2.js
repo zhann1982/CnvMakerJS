@@ -106,8 +106,8 @@ class Text extends Primitive {
 class Polygon extends Primitive{
     constructor(obj) {
         super(obj);
-        this.path = obj.path || [[0,0],[0,0]];
-        this.center = obj.center,
+        this.path = obj.path;
+        this.center = obj.center ?? this.getCenter();
         this.width = obj.width
         this.height = obj.height
     }
@@ -123,14 +123,17 @@ class Polygon extends Primitive{
         return this.center;
     }
 
+    // move one step according to linearSpeed
     move (obj = {}) {
         if (obj.linearSpeed) this.linearSpeed = obj.linearSpeed;
         for (let i = 0; i < this.path.length; i++) {
             this.path[i][0] += this.linearSpeed[0];
             this.path[i][1] += this.linearSpeed[1];
         }
+        return this;
     }
 
+    // rotate one step according to angularSpeed
     rotate (obj = {}) {
         if (obj.angularSpeed) this.angularSpeed = obj.angularSpeed;
         this.rotationCenter = this.getCenter()
@@ -140,18 +143,107 @@ class Polygon extends Primitive{
             this.path[i][0] = pointX*Math.cos(this.angularSpeed) - pointY*Math.sin(this.angularSpeed) + this.rotationCenter[0];
             this.path[i][1] = pointX*Math.sin(this.angularSpeed) + pointY*Math.cos(this.angularSpeed) + this.rotationCenter[1];
         }
-
-        return this.path;
+        return this;
     }
 
+    // Check if polygon is touching borders of canvas. Overflow allows to check border outside the canvas
     checkBorderTouch(canvas, overflow = 0) {
-
+        if (!coeff) return this;
         for (let i = 0; i < this.path.length; i++) {
             if (this.path[i][0]<1 - overflow && (this.path[i][0]+this.linearSpeed[0])<this.path[i][0]) this.linearSpeed[0] *= -1;
             if (this.path[i][0]>canvas.width-1 + overflow && (this.path[i][0]+this.linearSpeed[0])>this.path[i][0]) this.linearSpeed[0] *= -1;
             if (this.path[i][1]<1 - overflow && (this.path[i][1]+this.linearSpeed[1])<this.path[i][1]) this.linearSpeed[1] *= -1;
             if (this.path[i][1]>canvas.height-1 + overflow && (this.path[i][1]+this.linearSpeed[1])>this.path[i][1]) this.linearSpeed[1] *= -1;
         }
+        return this;
+    }
+
+    scaleX (coeff) {
+        if (!coeff) return this;
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][0] = (this.path[i][0] - center[0])*coeff + center[0];
+        }
+        return this;
+    }
+
+    scaleY (coeff) {
+        if (!coeff) return this;
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][1] = (this.path[i][1] - center[1])*coeff + center[1];
+        }
+        return this;
+    }
+
+    scale (coeff1, coeff2 = coeff1) {
+        if (!coeff1) return this;
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][0] = (this.path[i][0] - center[0])*coeff1 + center[0];
+            this.path[i][1] = (this.path[i][1] - center[1])*coeff2 + center[1];
+        }
+        return this;
+    }
+
+    flipX () {
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][0] = (this.path[i][0] - center[0])*(-1) + center[0];
+        }
+        return this;
+    }
+
+    flipY () {
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][1] = (this.path[i][1] - center[1])*(-1) + center[1];
+        }
+        return this;
+    }
+
+    skewX (degree) {
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][0] = this.path[i][0] + (this.path[i][1] - center[1])*tan(-degree);
+        }
+        return this;
+    }
+
+    skewY (degree) {
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][1] = this.path[i][1] + (this.path[i][0] - center[0])*tan(-degree);
+        }
+        return this;
+    }
+
+    translateX (xShift) {
+        if (!xShift) return this;
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][0] = (this.path[i][0] - center[0]) + xShift + center[0];
+        }
+        return this;
+    }
+
+    translateY (yShift) {
+        if (!yShift) return this;
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][1] = (this.path[i][1] - center[1]) + yShift + center[1];
+        }
+        return this;
+    }
+
+    translate (xShift, yShift) {
+        if (!xShift || !yShift) return this;
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][0] = (this.path[i][0] - center[0]) + xShift + center[0];
+            this.path[i][1] = (this.path[i][1] - center[1]) + yShift + center[1];
+        }
+        return this;
     }
 }
 
@@ -252,6 +344,15 @@ class Random {
     point ({start,end}) {
         return [Math.ceil(start[0]) + Math.round((end[0]-start[0])*Math.random()),
                 Math.ceil(start[1]) + Math.round((end[1]-start[1])*Math.random())];
+    }
+
+    points ({start,end,number}) {
+        let arr = [];
+        for (let i = 0; i < number; i++) {
+            arr.push([Math.ceil(start[0]) + Math.round((end[0]-start[0])*Math.random()),
+                      Math.ceil(start[1]) + Math.round((end[1]-start[1])*Math.random())]);
+        }
+        return arr;
     }
 
     arrayOfRandomNumbers (obj) {
@@ -959,5 +1060,74 @@ class Calculus2D {
         }
         return unitVector;
     }
+
+    zerosVector (numElements) {
+        let vector = [];
+        for (let j=0; j<numElements; j++) vector.push(0);
+        return vector;
+    }
+
+    onesVector (numElements) {
+        let vector = [];
+        for (let j=0; j<numElements; j++) vector.push(1);
+        return vector;
+    }
+
+    zerosMatrix (numRows, numCols = numRows) {
+        let matrix = [];
+        for (let i=0; i<numRows; i++) {
+            let row = [];
+            for (let j=0; j<numCols; j++) {
+                row.push(0);
+            }
+            matrix.push(row);
+        }
+        return matrix;
+    }
+
+    onesMatrix (numRows, numCols = numRows) {
+        let matrix = [];
+        for (let i=0; i<numRows; i++) {
+            let row = [];
+            for (let j=0; j<numCols; j++) {
+                row.push(1);
+            }
+            matrix.push(row);
+        }
+        return matrix;
+    }
     
+    identityMatrix (numRows, numCols = numRows) {
+        let matrix = [];
+        for (let i=0; i<numRows; i++) {
+            let row = [];
+            for (let j=0; j<numCols; j++) {
+                if (i===j) {
+                    row.push(1);
+                } else {
+                    row.push(0);
+                }
+                
+            }
+            matrix.push(row);
+        }
+        return matrix;
+    }
+
+    dotProduct (v1,v2) {
+        if (v1.length !== v2.length) return undefined;
+        let product = 0;
+        for (let i=0; i<v1.length; i++) {
+            product += v1[i] * v2[i];
+        }
+    }
+
+    vectorProduct (v1,v2) {
+        if (v1.length !==3 && v2.length !==3) return undefined;
+        return [
+            v1[1]*v2[2] - v1[2]*v2[1],
+           -v1[0]*v2[2] + v1[2]*v2[0],
+            v1[0]*v2[1] - v1[1]*v2[0]
+        ]
+    }
 }
