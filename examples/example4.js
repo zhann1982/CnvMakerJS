@@ -100,34 +100,22 @@ let frame = () => {
         }
 
         // draw visible sides of the cube
-        c.polygon({
-            color:  rgba(squareTopPolygon.fillColor.r,squareTopPolygon.fillColor.g,squareTopPolygon.fillColor.b),
-            // colors of sides are chosen by the help of ternary operators in cascade
-            fillColor: (m1===0)?(rgba(squareTopPolygon.fillColor.r*8/10,squareTopPolygon.fillColor.g*8/10,squareTopPolygon.fillColor.b*8/10)) :
-                                ((m1===1)?(rgba(squareTopPolygon.fillColor.r*7/10,squareTopPolygon.fillColor.g*7/10,squareTopPolygon.fillColor.b*7/10)):(
-                                        (m1===2)?(rgba(squareTopPolygon.fillColor.r*8/10,squareTopPolygon.fillColor.g*8/10,squareTopPolygon.fillColor.b*8/10)):
-                                                (rgba(squareTopPolygon.fillColor.r*9/10,squareTopPolygon.fillColor.g*9/10,squareTopPolygon.fillColor.b*9/10))
-                                )
-                        ),
-            lineWidth: 1,
-            linJoin: 'round',
-            // first visible side
-            path: sides[m1]
-        });
-        c.polygon({
-            color:  rgba(squareTopPolygon.fillColor.r,squareTopPolygon.fillColor.g,squareTopPolygon.fillColor.b),
-            // colors of sides are chosen by the help of ternary operators in cascade
-            fillColor: (m2===0)?(rgba(squareTopPolygon.fillColor.r*8/10,squareTopPolygon.fillColor.g*8/10,squareTopPolygon.fillColor.b*8/10)) :
-                                ((m2===1)?(rgba(squareTopPolygon.fillColor.r*7/10,squareTopPolygon.fillColor.g*7/10,squareTopPolygon.fillColor.b*7/10)):(
-                                        (m2===2)?(rgba(squareTopPolygon.fillColor.r*8/10,squareTopPolygon.fillColor.g*8/10,squareTopPolygon.fillColor.b*8/10)):
-                                                (rgba(squareTopPolygon.fillColor.r*9/10,squareTopPolygon.fillColor.g*9/10,squareTopPolygon.fillColor.b*9/10))
-                                )
-                        ),
-            lineWidth: 1,
-            linJoin: 'round',
-            // second visible side
-            path: sides[m2]
-        });
+        for (let m of [m1,m2]) {
+            c.polygon({
+                color:  rgba(squareTopPolygon.fillColor.r,squareTopPolygon.fillColor.g,squareTopPolygon.fillColor.b),
+                // colors of sides are chosen by the help of ternary operators in cascade
+                fillColor: (m===0)?(rgba(squareTopPolygon.fillColor.r*8/10,squareTopPolygon.fillColor.g*8/10,squareTopPolygon.fillColor.b*8/10)) :
+                                    ((m===1)?(rgba(squareTopPolygon.fillColor.r*7/10,squareTopPolygon.fillColor.g*7/10,squareTopPolygon.fillColor.b*7/10)):(
+                                            (m===2)?(rgba(squareTopPolygon.fillColor.r*8/10,squareTopPolygon.fillColor.g*8/10,squareTopPolygon.fillColor.b*8/10)):
+                                                    (rgba(squareTopPolygon.fillColor.r*9/10,squareTopPolygon.fillColor.g*9/10,squareTopPolygon.fillColor.b*9/10))
+                                    )
+                            ),
+                lineWidth: 1,
+                linJoin: 'round',
+                // first visible side
+                path: sides[m]
+            });
+        }
 
         // draw top of the cube
         c.polygon({
@@ -141,10 +129,10 @@ let frame = () => {
         // rotate original top square of the cube for next frame in the animation.
         squareTopPolygon.rotate({});
     }
-   
-    drawCube(topsArray[0]);
-    drawCube(topsArray[1]);
-    drawCube(topsArray[2]);
+
+    for (let i = 0; i < topsArray.length; i++) {
+        drawCube(topsArray[i]);
+    }
 
 }
 
