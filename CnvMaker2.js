@@ -51,11 +51,11 @@ let max = Math.max;
 // class for Styles. Notice: this class doesn't affect current styles of context
 class Styles {
     constructor(obj) {
-        this.color = obj.color || 'black';
-        this.fillColor = obj.fillColor || 'transparent';
-        this.lineWidth = obj.lineWidth || 1;
-        this.lineCap = obj.lineCap || 'round';  // "butt" , "round" , "square"
-        this.lineJoin = obj.lineJoin || 'miter'; // "bevel" , "round" , "miter"
+        this.color = obj.color;
+        this.fillColor = obj.fillColor;
+        this.lineWidth = obj.lineWidth;
+        this.lineCap = obj.lineCap;  // "butt" , "round" , "square"
+        this.lineJoin = obj.lineJoin; // "bevel" , "round" , "miter"
         this.shadowColor = obj.shadowColor;
         this.shadowBlur = obj.ShadowBlur;
         this.shadowOffsetX = obj.shadowOffsetX;
@@ -84,6 +84,10 @@ class Primitive extends Styles {
         this.linearAcceleration = obj.linearAcceleration;    // change of linear speed
         this.angularAcceleration = obj.angularAcceleration;   // change of angular speed
     }
+
+    getCopy () {
+        return Object.assign({}, this);
+    }
 }
 
 // Primitive for text
@@ -110,6 +114,18 @@ class Polygon extends Primitive{
         this.center = obj.center ?? this.getCenter();
         this.width = obj.width
         this.height = obj.height
+    }
+
+    // copy path to avoid reference errors
+    copyPath () {
+        let path = [];
+        for (let i=0; i<this.path.length; i++) {
+            path.push([
+                this.path[i][0],
+                this.path[i][1]
+            ]);
+        }
+        return path;
     }
 
     // get geometrical center
@@ -148,7 +164,7 @@ class Polygon extends Primitive{
 
     // Check if polygon is touching borders of canvas. Overflow allows to check border outside the canvas
     checkBorderTouch(canvas, overflow = 0) {
-        if (!coeff) return this;
+        if (!canvas) return this;
         for (let i = 0; i < this.path.length; i++) {
             if (this.path[i][0]<1 - overflow && (this.path[i][0]+this.linearSpeed[0])<this.path[i][0]) this.linearSpeed[0] *= -1;
             if (this.path[i][0]>canvas.width-1 + overflow && (this.path[i][0]+this.linearSpeed[0])>this.path[i][0]) this.linearSpeed[0] *= -1;
