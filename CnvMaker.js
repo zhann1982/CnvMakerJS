@@ -1,9 +1,20 @@
-// cross-brawser requestAnimationFrame function:
-window.requestAnimFrame = (function(callback) {
-	return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function(callback) { 
-  window.setTimeout(callback, 1000 / 60); 
-};
-})();
+// Canvas framework for simplest 2d drawings and animation
+
+// Closure for creating counters
+const closure = () => {
+    let k = 1;
+    return function(){
+        return k++;
+    }
+}
+
+// counter that gives us next natural number, starting from 0
+let counterForName = closure();
+
+// make rgba colors functionally available
+let rgba = (r,g,b,op) => `rgba(${r}, ${g}, ${b}, ${op?op:1})` ;
+// make hsla colors functionally available
+let hsla = (h,s,l,op) => `hsla(${h}, ${s}, ${l}, ${op?op:1})` ;
 
 // shortcut for logging
 let log = console.log; 
@@ -30,933 +41,1135 @@ let sqrt = x => Math.sqrt(x);
 let exp = x => Math.exp(x);
 let ln = x => Math.log(x);
 
+// absolute value |x|
+let abs = x => Math.abs(x);
+
 // simplifying minimum and maximum
 let min = Math.min;
 let max = Math.max;
 
-
-
-
-// absolute value |x|
-let abs = x => Math.abs(x);
-
-// special function to play animation with intervals
-let $anim = (func, step, interval) => {
-	let st = () => setTimeout(func, step);
-	let intr = () => setInterval(st, interval);
-	intr();
+// class for Styles. Notice: this class doesn't affect current styles of context
+class Styles {
+    constructor(obj) {
+        this.color = obj.color;
+        this.fillColor = obj.fillColor;
+        this.lineWidth = obj.lineWidth;
+        this.lineCap = obj.lineCap;  // "butt" , "round" , "square"
+        this.lineJoin = obj.lineJoin; // "bevel" , "round" , "miter"
+        this.shadowColor = obj.shadowColor;
+        this.shadowBlur = obj.ShadowBlur;
+        this.shadowOffsetX = obj.shadowOffsetX;
+        this.shadowOffsetY = obj.shadowOffsetY;
+    }
 }
 
-// !!!  special functions which we will need
+// Primitive with simplest properties
+class Primitive extends Styles {
+    constructor(obj) {
+        super(obj);
+        this.name = obj.name || 'primitive' + counterForName();
+        this.pivot1 = obj.pivot1; // only array [a, b]
+        this.pivot2 = obj.pivot2; // only array [a, b]
+        this.start = obj.start;  // only array [a, b]
+        this.end = obj.end;  // only array [a, b]
+        this.ccw = obj.ccw;
 
-//random natural number
-let rn = (min, max) => {
-	return Math.ceil(min) + Math.floor((max-min)*Math.random());
+        // special keys for motion
+        this.linearSpeed = obj.linearSpeed || [0,0];   //  array with shift values [dx, dy]
+        if (obj.angularSpeed) {
+            this.angularSpeed = (this.ccw)?(obj.angularSpeed*-1):obj.angularSpeed;   // change of angle for rotation
+        } else {
+            this.angularSpeed = 0;
+        }
+        this.linearAcceleration = obj.linearAcceleration;    // change of linear speed
+        this.angularAcceleration = obj.angularAcceleration;   // change of angular speed
+    }
+
+    getCopy () {
+        return Object.assign({}, this);
+    }
 }
 
-//random real number
-let rrl = (min, max) => min + (max-min)*Math.random();
-
-// make rgba colors functionally available
-let rgba = (r,g,b,op) => {
-	return `rgba(${r}, ${g}, ${b}, ${op})`;
-}
-let rgb = (r,g,b) => {
-	return `rgb(${r}, ${g}, ${b})`;
-}
-
-// make hsla colors functionally available
-let hsla = (h,s,l,op) => {
-	return `hsla(${h}, ${s}, ${l}, ${op})`;
-}
-let hsl = (h,s,l) => {
-	return `hsl(${h}, ${s}, ${l})`;
+// Primitive for text
+class Text extends Primitive {
+    constructor(obj) {
+        // use this.start to put starting point of the text
+        super(obj);
+        this.font = obj.font;  // default : "10px sans-serif" // same as css fonts
+        this.maxWidth = obj.maxWidth; //max width of a text line
+        this.text = obj.text;
+        this.textAlign = obj.textAlign; // start, end, left, right, center
+        this.textBaseline = obj.textBaseline; // top, hanging, middle, alphabetic, ideographic, bottom
+        this.direction = obj.direction; // ltr, rtl, inherit
+        this.type = obj.type; // stroke or fill
+    }
 }
 
-// random color with fixed boundaries based on rgba. Min and Max are 0 and 255. Op is for Opacity. Op is between 0 and 1
-let rc = (min,max,op) => {
-	let r = min + Math.floor((max-min)*Math.random()),
-		 g = min + Math.floor((max-min)*Math.random()),
-		 b = min + Math.floor((max-min)*Math.random());
-	return `rgba(${r}, ${g}, ${b}, ${op})`;
+// Create polygon from points. setup colors and line-width of edges
+// "color" is for edges, "fillColor" is for filling inside of polygon
+class Polygon extends Primitive{
+    constructor(obj) {
+        super(obj);
+        this.path = obj.path;
+        this.center = obj.center ?? this.getCenter();
+        this.width = obj.width
+        this.height = obj.height
+    }
+
+    // copy path to avoid reference errors
+    copyPath () {
+        let path = [];
+        for (let i=0; i<this.path.length; i++) {
+            path.push([
+                this.path[i][0],
+                this.path[i][1]
+            ]);
+        }
+        return path;
+    }
+
+    // get geometrical center
+    getCenter () {
+        let cx = 0, cy = 0;
+        for (let i = 0; i < this.path.length; i++) {
+            cx += this.path[i][0];
+            cy += this.path[i][1];
+        }
+        this.center = [cx/this.path.length, cy/this.path.length];
+        return this.center;
+    }
+
+    // move one step according to linearSpeed
+    move (obj = {}) {
+        if (obj.linearSpeed) this.linearSpeed = obj.linearSpeed;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][0] += this.linearSpeed[0];
+            this.path[i][1] += this.linearSpeed[1];
+        }
+        return this;
+    }
+
+    // rotate one step according to angularSpeed
+    rotate (obj = {}) {
+        if (obj.angularSpeed) this.angularSpeed = obj.angularSpeed;
+        this.rotationCenter = this.getCenter()
+        for (let i = 0; i < this.path.length; i++) {
+            let pointX = this.path[i][0] - this.rotationCenter[0], 
+                pointY = this.path[i][1] - this.rotationCenter[1];
+            this.path[i][0] = pointX*Math.cos(this.angularSpeed) - pointY*Math.sin(this.angularSpeed) + this.rotationCenter[0];
+            this.path[i][1] = pointX*Math.sin(this.angularSpeed) + pointY*Math.cos(this.angularSpeed) + this.rotationCenter[1];
+        }
+        return this;
+    }
+
+    // Check if polygon is touching borders of canvas. Overflow allows to check border outside the canvas
+    checkBorderTouch(canvas, overflow = 0) {
+        if (!canvas) return this;
+        for (let i = 0; i < this.path.length; i++) {
+            if (this.path[i][0]<1 - overflow && (this.path[i][0]+this.linearSpeed[0])<this.path[i][0]) this.linearSpeed[0] *= -1;
+            if (this.path[i][0]>canvas.width-1 + overflow && (this.path[i][0]+this.linearSpeed[0])>this.path[i][0]) this.linearSpeed[0] *= -1;
+            if (this.path[i][1]<1 - overflow && (this.path[i][1]+this.linearSpeed[1])<this.path[i][1]) this.linearSpeed[1] *= -1;
+            if (this.path[i][1]>canvas.height-1 + overflow && (this.path[i][1]+this.linearSpeed[1])>this.path[i][1]) this.linearSpeed[1] *= -1;
+        }
+        return this;
+    }
+
+    scaleX (coeff) {
+        if (!coeff) return this;
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][0] = (this.path[i][0] - center[0])*coeff + center[0];
+        }
+        return this;
+    }
+
+    scaleY (coeff) {
+        if (!coeff) return this;
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][1] = (this.path[i][1] - center[1])*coeff + center[1];
+        }
+        return this;
+    }
+
+    scale (coeff1, coeff2 = coeff1) {
+        if (!coeff1) return this;
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][0] = (this.path[i][0] - center[0])*coeff1 + center[0];
+            this.path[i][1] = (this.path[i][1] - center[1])*coeff2 + center[1];
+        }
+        return this;
+    }
+
+    flipX () {
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][0] = (this.path[i][0] - center[0])*(-1) + center[0];
+        }
+        return this;
+    }
+
+    flipY () {
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][1] = (this.path[i][1] - center[1])*(-1) + center[1];
+        }
+        return this;
+    }
+
+    skewX (degree) {
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][0] = this.path[i][0] + (this.path[i][1] - center[1])*tan(-degree);
+        }
+        return this;
+    }
+
+    skewY (degree) {
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][1] = this.path[i][1] + (this.path[i][0] - center[0])*tan(-degree);
+        }
+        return this;
+    }
+
+    translateX (xShift) {
+        if (!xShift) return this;
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][0] = (this.path[i][0] - center[0]) + xShift + center[0];
+        }
+        return this;
+    }
+
+    translateY (yShift) {
+        if (!yShift) return this;
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][1] = (this.path[i][1] - center[1]) + yShift + center[1];
+        }
+        return this;
+    }
+
+    translate (xShift, yShift) {
+        if (!xShift || !yShift) return this;
+        let center = this.center;
+        for (let i = 0; i < this.path.length; i++) {
+            this.path[i][0] = (this.path[i][0] - center[0]) + xShift + center[0];
+            this.path[i][1] = (this.path[i][1] - center[1]) + yShift + center[1];
+        }
+        return this;
+    }
 }
 
-//random light color
-let rlc = () => rc(220,255,1);
-
-//random dark color
-let rdc = () => rc(100,155,1);
-
-// really random color 
-let rcol = () => rc(0,255,1);
-
-// really random color with opacity
-let rcol2 = op => rc(0,255,op);
-
-//random 2d-vector with length berween A and B
-let rvec2 = (a,b) => {
-	let len = rrl(a,b);
-	let ang = rrl(0,2*PI);
-	return [len*cos(ang), len*sin(ang)];
+class Arc extends Primitive {
+    constructor(obj) {
+        super(obj);
+        this.center = obj.center || [0,0];
+        this.radius = obj.radius || 120;
+        this.angles = obj.angles || [0, 2*Math.PI]; // radians only
+        this.ccw = obj.ccw; // counterclockwise or not
+    }
 }
 
+class Square extends Primitive {
+    constructor(obj) {
+        super(obj);
+        this.corner = obj.corner || [10,10]; //upper left corner coords
+        this.width = obj.width || 80;
+        this.height = obj.width || 80;
+    }
 
-// Auxilary functions ------------
-//________________________________________________________
-// get N evenly distributed points on x-axis from X to Y
-// where X is first number, and Y is the last.
-let narray = (x,y,n) => {
-	if (typeof x == "number" && 
-		typeof y == "number" && 
-		typeof n == "number" && 
-		n%1==0 &&
-		n >= 2){
+    getPath () {
+        return [
+            this.corner,
+            [this.corner[0]+this.width, this.corner[1]],
+            [this.corner[0]+this.width, this.corner[1]+this.height],
+            [this.corner[0], this.corner[1]+this.height]
+        ]
+    }
 
-		if (n==2){
-			return [x,y];
-		} else {
-			let dx = (y-x)/(n-1);
+    getCenter () {
+        let cx = 0, cy = 0;
+        let path = this.getPath();
+        for (let i = 0; i < path.length; i++) {
+            cx += path[i][0];
+            cy += path[i][1];
+        }
+        return [cx/path.length, cy/path.length];
+    }
+}
+
+class Rectangle extends Square {
+    constructor(obj) {
+        super(obj);
+        this.height = obj.height || 50; 
+    }
+}
+
+class Ellipse extends Arc {
+    constructor(obj) {
+        super(obj);
+        this.radiusX = obj.radiusX || 120;
+        this.radiusY = obj.radiusY || 80;
+        this.rotation = obj.rotation || 0; // radians only
+    }
+}
+
+// special class for creating random values
+class Random {
+    constructor(){}
+
+    // get random element of given array
+    element (arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    // get random natural number between Min and Max values
+    natural (min,max) {
+        return Math.ceil(min) + Math.round((max-min)*Math.random());
+    }
+
+    // get random real number between Min and Max values
+    real (min,max) {
+        return min + (max-min)*Math.random();
+    }
+
+    // get random angle value in radians between 0 and 2PI
+    angle () {
+        return this.real(0,2*Math.PI);
+    }
+
+    // get random color in RGBA with given opacity
+    color (opacity) {
+        let r = Math.round((255)*Math.random()),
+		    g = Math.round((255)*Math.random()),
+		    b = Math.round((255)*Math.random());
+	return `rgba(${r}, ${g}, ${b}, ${opacity?opacity:1})`;
+    }
+
+    // get random vector [x,y] with length between Min and Max values, and random angle
+    vector2D (minLength, maxLength) {
+        let length = this.real(minLength,maxLength),
+            angle = this.angle();
+        return [length*Math.cos(angle), length*Math.sin(angle)];
+    }
+
+    // get random point within rectangle, where START is upperleft corner and the END is bottomright corner
+    point ({start,end}) {
+        return [Math.ceil(start[0]) + Math.round((end[0]-start[0])*Math.random()),
+                Math.ceil(start[1]) + Math.round((end[1]-start[1])*Math.random())];
+    }
+
+    points ({start,end,number}) {
+        let arr = [];
+        for (let i = 0; i < number; i++) {
+            arr.push([Math.ceil(start[0]) + Math.round((end[0]-start[0])*Math.random()),
+                      Math.ceil(start[1]) + Math.round((end[1]-start[1])*Math.random())]);
+        }
+        return arr;
+    }
+
+    arrayOfRandomNumbers (obj) {
+        let array = [];
+        for (let i = 0; i < obj.length; i++) {
+            array.push(obj.minValue + (obj.maxValue-obj.minValue)*Math.random());
+        }
+    }
+}
+
+// special class for creating different pathes
+class pathGenerator {
+    constructor() {}
+
+    // get array of consecutive numbers between START value and END value
+    consecutiveNumbers ({start,end,length}) {
+        if (length>2) {
 			let arr = [];
-			arr.push(x);
-			for (let i=0; i<n-2; i++){
-				let xx = x+(y-x)*(i+1)/(n-1);
-				arr.push(xx);
+			arr.push(start);
+			for (let i=0; i<length-2; i++){
+				let next = start+(end-start)*(i+1)/(length-1);
+				arr.push(next);
 			}	
-			arr.push(y);
+			arr.push(end);
 			return arr;
-		}
-	} else {
-		return undefined;
-	}
+		} else {
+		    return undefined;
+	    }
+    }
+    
+    straightPath ({start,end,length}) {
+        let arrayX = this.consecutiveNumbers({start: start[0],end: end[0],length}), 
+            arrayY = this.consecutiveNumbers({start: start[1],end: end[1],length}),
+            path = [];
+        for (let i=0; i<length; i++) {
+            path.push([arrayX[i], arrayY[i]]);
+        }
+        return path;
+    }
+
+    circularPath ({center, radius, phase, length}) {
+        let vertices = this.consecutiveNumbers({start: 0, end: 2*PI, length: length+1});
+        let path = [];
+        for (let i=0; i<length; i++) {
+            path.push( [ (center[0] + radius*cos(vertices[i] - phase - PI/2)) , (center[1] + radius*sin(vertices[i] - phase - PI/2)) ] );
+        }
+        return path;
+    }
+
+    rectangle ({center, width, height}) {
+        return [
+            [center[0] - width/2, center[1] - height/2],
+            [center[0] + width/2, center[1] - height/2],
+            [center[0] + width/2, center[1] + height/2],
+            [center[0] - width/2, center[1] + height/2]
+        ]
+    }
 }
 
-// get N evenly distributed points on line, which is 
-// passing through 2D-plane from [x0, y0] to [x1, y1]
-let darray = (x0,y0,x1,y1,n) => {
-	let ar1 = narray(x0,x1,n), ar2 = narray(y0,y1,n);
-	let res = [];
-	for (let i=0; i<n; i++) {
-		res.push([ar1[i],ar2[i]]);
-	}
-	return res;
-}
+// main class for manipulating canvas
+class CnvMaker {
 
-// get N evenly distributed points on circle, which is 
-// on 2D-plane with center at [Cx,Cy]
-let carray = (cx, cy, r, ph, n) => {
-	let arr = narray(0, 2*PI, n+1);
-	let res = [];
-	for (let i=0; i<n; i++) {
-		res.push( [ (cx + r*cos(arr[i] + ph)) , (cy + r*sin(arr[i] + ph)) ] );
-	}
-	return res;
-}
+    // Create and append canvas
+    constructor (el,w,h) {
 
-// Let's create path with points that are distributed by cosine rule x = x0 + (l/2)*(1-cosA), 
-let garray = (x0,y0,x1,y1,len) => {
-	let angs = narray(0,PI,len);
-	let lenX = x1 - x0;
-	let lenY = y1 - y0;
-	let res = [];
-	res.push([x0,y0]);
-	for (let i=1; i<angs.length-1; i++) {
-		res.push([x0 + (lenX/2)*(1-cos(angs[i])) , y0 + (lenY/2)*(1-cos(angs[i]))]);
-	}
-	res.push([x1,y1]);
-	return res;
-}
-
-// Let's double the number of points in path. 
-// We can achieve it by putting new points between existing.
-// Number of points increases by N-1 (where N is initial number of points)
-let addPts = mat => {
-	let res = [mat[0]];
-	for (let i=0; i<mat.length-1; i++) {
-		let x = (mat[i][0] + mat[i+1][0])/2,
-			y = (mat[i][1] + mat[i+1][1])/2;
-		res.push([x,y]);
-		res.push(mat[i+1]);
-	}
-	return res;
-}
-
-// draw polygon with N equal sides, each has length B 
-let ngon = (cx, cy, n, b) => {
-	let arr = narray(0, 2*Math.PI, n+1);
-	let r = b*sqrt(1/(2*(1-cos((2*PI)/n))));
-	arr.pop();
-	let res = [];
-	for (let i=0; i<n; i++) {
-		res.push( [ (cx + r*Math.cos(arr[i])) , (cy + r*Math.sin(arr[i])) ] );
-	}
-	return res;
-}
-
-// draw polygon with N equal sides, each has length B 
-// also you can enter Phase to rotate the body
-let ngonp = (cx, cy, n, b, ph) => {
-	let arr = narray(0, 2*Math.PI, n+1);
-	let r = b*sqrt(1/(2*(1-cos((2*PI)/n))));
-	arr.pop();
-	let res = [];
-	for (let i=0; i<n; i++) {
-		res.push( [ (cx + r*Math.cos(arr[i]+ph)) , (cy + r*Math.sin(arr[i]+ph)) ] );
-	}
-	return res;
-}
-
-// draw polygon with N equal sides, and radius R 
-// also you can enter Phase to rotate the body
-let ngonpr = (cx, cy, n, r, ph) => {
-	let arr = narray(0, 2*Math.PI, n+1);
-	arr.pop();
-	let res = [];
-	for (let i=0; i<n; i++) {
-		res.push( [ (cx + r*Math.cos(arr[i]+ph)) , (cy + r*Math.sin(arr[i]+ph)) ] );
-	}
-	return res;
-}
-
-// draw stars: M is number of leaves, 
-// RB is radius of outer-most point of leaf
-// RS is radius of inner-most point of leaf
-let star = (cx,cy,m,rb,rs) => {
-	let p =[];
-	let k = (m%2==0)?2:4
-	let n1 = ngonpr(cx,cy,m,rb,0-(PI/2));
-	let n2 = ngonpr(cx,cy,m,rs,2*PI/(2*m)-(PI/2));
-	for (let i=0; i<m; i++) {
-		p.push(n1[i]);
-		p.push(n2[i]);
-	}
-	p.push(n1[0])
-	return p;
-}
-
-// draw sew like path, where Vx, Vy are ones side of one leaf, 
-// and M is count of leafs
-let sew = (vx,vy,cx,cy,m) => {
-	vy = -vy;
-	let res = [], x = 0, y = 0;
-	res.push([x,y]);
-	for (let i=0; i<2*m; i++) {
-		x += vx;
-		y = (i%2==0)?vy:0;
-		res.push([x,y]);
-	}
-	return transl(res,cx,cy);
-}
-
-//draw square sew
-let sqSew = (b,m,cx,cy) => {
-	let res = [], x = 0, y = 0;
-	res.push([x,y]);
-	for (let i=0; i<2*m; i++) {
-		y = (i%2==0)?-b:0;
-		res.push([x,y]);
-		x += b;
-		res.push([x,y]);
-	}
-	res.pop();
-	return transl(res,cx,cy);
-}
-
-
-
-// find center of mass of multiple points
-let cntr = mat => {
-	let cx = 0, cy = 0;
-	for (let i=0; i<mat.length; i++) {
-		cx += mat[i][0];
-		cy += mat[i][1];
-	}
-	return [cx/mat.length, cy/mat.length];
-}
-
-// find center of mass of multipath
-let cntrMp = mp => {
-	let centers = [];
-	for (let i=0; i<mp.length; i++) {
-		centers.push(cntr(mp[i]));
-	}
-	return cntr(centers);
-}
-
-// find center of mass of multiple lines in path, 
-// where we assume that mass is equvalent to length of straight lines
-let cntrL = mat => {
-	let clx = 0,
-		 cly =0,
-		 ll = 0;
-	for (let i=0; i<mat.length-1; i++) {
-		let cx = (mat[i][0] + mat[i+1][0])/2,
-			 cy = (mat[i][1] + mat[i+1][1])/2,
-			 ln = sqrt((mat[i][0] - mat[i+1][0])**2 + (mat[i][1] - mat[i+1][1])**2);
-		clx += cx*ln;
-		cly += cy*ln;
-		ll += ln;
-	}
-	return [clx/ll, cly/ll];
-}
-
-//get length of 2d-vector
-let len2d = vec => {
-	return sqrt(vec[0]**2 + vec[1]**2);
-}
-
-// distance between two points in 2d plane
-// where two points are [x1,y1] and [x2,y2]
-let dist2d = (v1,v2) => {
-	return sqrt((v1[0]-v2[0])**2 + (v1[1]-v2[1])**2);
-}
-
-// get lengthes of vectors of path
-let mLen = (mat) => {
-	let res = [];
-	for (let i=0; i<mat.length; i++) {
-		res.push(sqrt(mat[i][0]**2 + mat[i][1]**2));
-	}
-	return res;
-}
-
-// get lengthes of vectors of pathes in multipath
-let mmLen = (mmat) => {
-	let mres = [];
-	for (let j=0; j<mmat.length; j++) {
-		let res = [];
-		for (let i=0; i<mmat[j].length; i++) {
-			res.push(sqrt(mmat[j][i][0]**2 + mmat[j][i][1]**2));
-		}
-		mres.push(res);
-	}
-	return mres;
-}
-
-// find product of two matrices: N-by-2 nad 2-by-2
-// where the last matrix is a matrix of deformation
-// for example it may be matrix of rotation and so on...
-let deform = (mat,def,cx,cy) => {
-	let res = [];
-	for (let i=0; i<mat.length; i++) {
-		res[i] = [
-			(mat[i][0] - cx)*def[0][0] + (mat[i][1] - cy)*def[1][0] + cx,
-			(mat[i][0] - cx)*def[0][1] + (mat[i][1] - cy)*def[1][1] + cy
-		];
-	}
-	return res;
-}
-
-// the same function, but the center of deformation is in the center of mass
-let deformc = (mat,def) => {
-	let res = [],
-		 cc = cntrL(mat),
-		 cx = cc[0],
-		 cy = cc[1];
-	for (let i=0; i<mat.length; i++) {
-		res[i] = [
-			(mat[i][0] - cx)*def[0][0] + (mat[i][1] - cy)*def[1][0] + cx,
-			(mat[i][0] - cx)*def[0][1] + (mat[i][1] - cy)*def[1][1] + cy
-		];
-	}
-	return res;
-}
-
-// translate all points by fixed vector V = [tx,ty]
-let transl = (mat,tx,ty) => {
-	let res = [];
-	for (let i=0; i<mat.length; i++) {
-		res[i] = [
-			mat[i][0] + tx, 
-			mat[i][1] + ty
-		];
-	}
-	return res;
-}
-
-// translate all points by fixed vector V = [tx,ty]
-let translv = (mat,v) => {
-	let res = [];
-	for (let i=0; i<mat.length; i++) {
-		res[i] = [
-			mat[i][0] + v[0], 
-			mat[i][1] + v[1]
-		];
-	}
-	return res;
-}
-
-// scale the body of path by COEFFICIENT.
-// scaling center is at the center of mass
-// scaling by amount of area
-let scaleArea = (mat,coef) => {
-	let res = []
-	let cx = cntr(mat)[0],
-		 cy = cntr(mat)[1];
-	for (let i=0; i<mat.length; i++) {
-		res[i] = [
-			(mat[i][0] - cx)*sqrt(coef) + cx,
-			(mat[i][1] - cy)*sqrt(coef) + cy
-		];
-	}
-	return res;
-}
-
-// scale the body of path by COEF.
-// scaling center is at the center of mass
-// scaling linearly
-let scaleAxis = (mat,fx,fy) => {
-	let res = [],
-		 cc = cntr(mat),
-	 	 cx = cc[0],
-		 cy = cc[1];
-	for (let i=0; i<mat.length; i++) {
-		res[i] = [
-			(mat[i][0] - cx)*fx + cx,
-			(mat[i][1] - cy)*fy + cy
-		];
-	}
-	return res;
-}
-
-// Flip the body vertically
-let flipY = mat => {
-	let res = [],
-		 cc = cntrL(mat),
-	 	 cx = cc[0],
-		 cy = cc[1];
-	for (let i=0; i<mat.length; i++) {
-		res[i] = [
-			(mat[i][0] - cx) + cx,
-			(mat[i][1] - cy)*(-1) + cy
-		];
-	}
-	return res;
-}
-
-// Flip the body horizontally
-let flipX = mat => {
-	let res = [],
-		 cc = cntrL(mat),
-	 	 cx = cc[0],
-		 cy = cc[1];
-	for (let i=0; i<mat.length; i++) {
-		res[i] = [
-			(mat[i][0] - cx)*(-1) + cx,
-			(mat[i][1] - cy) + cy
-		];
-	}
-	return res;
-}
-
-// skew the body horizontally
-let skewX = (mat,deg) => {
-	let res = [],
-		 cc = cntrL(mat),
-	 	 cx = cc[0],
-		 cy = cc[1];
-	for (let i=0; i<mat.length; i++) {
-		res[i] = [
-			(mat[i][0] - cx) + cx + (mat[i][1] - cy)*tan(deg) ,
-			(mat[i][1] - cy) + cy
-		];
-	}
-	return res;
-}
-
-// skew the body vertically
-let skewY = (mat,deg) => {
-	let res = [],
-		 cc = cntrL(mat),
-	 	 cx = cc[0],
-		 cy = cc[1];
-	for (let i=0; i<mat.length; i++) {
-		res[i] = [
-			(mat[i][0] - cx) + cx,
-			(mat[i][1] - cy) + cy + (mat[i][0] - cx)*tan(deg)
-		];
-	}
-	return res;
-}
-
-// Rotate point around point [px,py] to angle dt
-let rotp = (x,y, px, py, dt, cw = true) => {
-	if (!cw) {
-		dt *= -1;
-	}
-	let xx = x - px, yy = y - py;
-	let rx = xx*Math.cos(dt) - yy*Math.sin(dt) + px;
-	let ry = xx*Math.sin(dt) + yy*Math.cos(dt) + py;
-	return [rx,ry];
-}
-
-// Rotate the body to DT angle
-let rotC = (mat, dt) => {
-	let nmat = [],
-		 cn = cntr(mat),
-		 px = cn[0],
-		 py = cn[1];		
-	for (let i=0; i<mat.length; i++) {
-		nmat[i] = rotp(mat[i][0],mat[i][1],px,py,dt);
-	}
-	return nmat;
-}
-
-
-// this function translates each point of path differently
-// length of both arguments must be equal
-let mtransl = (mat,mdef) => {
-	let res = [];
-	for (let i=0; i<mat.length; i++) {
-		res[i] = [
-			mat[i][0] + mdef[i][0], 
-			mat[i][1] + mdef[i][1]
-		];
-	}
-	return res;
-}
-
-// translate all points of mpath by single V = [tx,ty]
-let mPathTransl = (mpath,v) => {
-	let res = [];
-	for (let i=0; i<mpath.length; i++) {
-		res.push(transl(mpath[i],v[0],v[1]));
-	}
-	return res;
-}
-
-// this function deforms(moves) each point of path differently
-// length of both arguments must be equal
-let mdeform = (mat,mdef,cx,cy) => {
-	let res = [];
-	for (let i=0; i<mat.length; i++) {
-		res[i] = [
-			(mat[i][0] - cx)*mdef[i][0][0] + (mat[i][1] - cy)*mdef[i][1][0] + cx,
-			(mat[i][0] - cx)*mdef[i][0][1] + (mat[i][1] - cy)*mdef[i][1][1] + cy
-		];
-	}
-	return res;
-}
-
-// this function deforms(moves) each point of path differently
-// length of both arguments must be equal
-let mdeformc = (mat,mdef) => {
-	let res = [],
-		 cc = cntr(mat),
-		 cx = cc[0],
-		 cy = cc[1];
-	for (let i=0; i<mat.length; i++) {
-		res[i] = [
-			(mat[i][0] - cx)*mdef[i][0][0] + (mat[i][1] - cy)*mdef[i][1][0] + cx,
-			(mat[i][0] - cx)*mdef[i][0][1] + (mat[i][1] - cy)*mdef[i][1][1] + cy
-		];
-	}
-	return res;
-}
-
-// stretch the body in certain direction by coefficient K
-let stretch = (mat, deg, k) => {
-	let res = [],
-		 cc = cntrL(mat),
-		 cx = cc[0], cy = cc[1];
-	for (let i=0; i<mat.length; i++) {
-		let mx = mat[i][0] - cx,
-			 my = mat[i][1] - cy;
-		let L  =  k*(cos(deg)*mx + sin(deg)*my),
-			 Lp =    -sin(deg)*mx + cos(deg)*my;
-		let xx = L*cos(deg) + Lp*(-sin(deg)),
-			 yy = L*sin(deg) + Lp*cos(deg);
-		res.push([xx+cx,yy+cy]);
-	}
-	return res;
-}
-
-// extract x values of a path, and y values in different arrays
-let extractXY = path => {
-	let xx = [], yy = [];
-	for (let i = 0; i < path.length; i++) {
-		xx.push(path[i][0]);
-		yy.push(path[i][1]);
-	}
-	return [xx,yy];
-}
-
-// Get min and max values of X and Y of a Path
-let minmax = path => {
-	let ext = extractXY(path);
-	return [[min(...ext[0]),min(...ext[1])], [max(...ext[0]),max(...ext[1])]];
-}
-
-
-// eye matrix 2-by-2:   [[1,0],[0,1]]
-let eye2 = () => {
-	return [[1,0],[0,1]];
-}
-
-// special rotation matrix for function "Deform"
-let rotm = (ang, cw = true)=> {
-	if (cw) {
-		return [ 
-					[cos(ang), sin(ang)], 
-					[-sin(ang), cos(ang)]
-				 ];
-	} else {
-		return [ 
-					[cos(-ang), sin(-ang)], 
-					[-sin(-ang), cos(-ang)]
-				 ];
-	}
-}
-
-// special scaling matrix for function Deform.
-// this matrix allows to scale in both X and Y axises
-let scalem = (kx,ky)=> {
-		return [ 
-			[ kx, 0 ], 
-			[ 0 , ky]
-		];
-}
-
-// special scaling matrix for function Deform.
-// this matrix allows onle scaling whole area
-let scaleA = (k)=> {
-		return [ 
-			[ sqrt(k), 0 ], 
-			[ 0 , sqrt(k)]
-		];
-}
-
-// get random 2d vector with natural elements
-// 'maxl' stands for maximum length
-let rv2 = (maxl)=> {
-		return [ 
-			rn(0,maxl/sqrt(2)),
-			rn(0,maxl/sqrt(2)),
-		];
-}
-
-// get random 2d vector with real elements
-// 'maxl' stands for maximum length
-let rrv2 = (maxl)=> {
-		return [ 
-			rrl(-maxl/sqrt(2),maxl/sqrt(2)),
-			rrl(-maxl/sqrt(2),maxl/sqrt(2)),
-		];
-}
-
-// get matrix(array) of random 2d vectors
-let randm = (len,maxl) => {
-	let res = [];
-	for (let i=0;i<len;i++) {
-		res.push(rv2(maxl));
-	}
-	return res;
-}
-
-// copy the vector
-let copyVx = v => {
-	let nv = [...v];
-	return nv;
-}
-
-// copy the path
-let copyPathx = path => {
-	let npath = [];
-	for (let i=0; i<path.length; i++) {
-		npath[i] = copyV(path[i]);
-	}
-	return npath;
-}
-
-// copy the mpath
-let copyMpathx = mpath => {
-	let nmpath = [];
-	for (let i=0; i<mpath.length; i++) {
-		nmpath[i] = copyPath(mpath[i]);
-	}
-	return nmpath;
-}
-
-
-//get mpath from path by pushing it in empty array multiple times
-let mpathN = (pth,n) => {
-	let path = copyPathx(pth);
-	let res = [];
-	for (let i = 0; i < n; i++) {
-		res.push(path);
-	}
-	return res;
-}
-
-
-// Check if path has reached the border of canvas
-// Also check if motion is into canvas or out.
-// we need it in animations
-let borders = (path,w,h,dx,dy) => {
-	let res = [0,0];
-	path.forEach(p => {
-		if (p[0]<1 && (p[0]+dx)<p[0]) res[0] = 1;
-		if (p[0]<1 && (p[0]+dx)>=p[0]) res[0] = 0;
-		if (p[0]>w-1 && (p[0]+dx)>p[0]) res[0] = 1;
-		if (p[0]>w-1 && (p[0]+dx)<=p[0]) res[0] = 0;
-		if (p[1]<1 && (p[1]+dy)<p[1]) res[1] = 1;
-		if (p[1]<1 && (p[1]+dy)>=p[1]) res[1] = 0;
-		if (p[1]>h-1 && (p[1]+dy)>p[1]) res[1] = 1;
-		if (p[1]>h-1 && (p[1]+dy)<=p[1]) res[1] = 0;
-		if (res[0]==1 || res[1]==1) {
-			return res;
-		}
-	});
-	return res;
-}
-
-
-
-// ---- Main code for manipulating canvas------------------------
-
-// let's make constructor for craeting canvas nodes and manipulating them:
-function CnvMaker ()  {
-	// create canvas node and get its context
-	
-	
-	// draw that canvas node
-	this.init = (el,w,h) => {
-		
-		this.canvasNode = document.createElement("canvas");
+        // Creating canvas node
+        this.canvasNode = document.createElement("canvas");
 		this.ctx = this.canvasNode.getContext('2d');
 		
-		// set width and height
-		this.canvasNode.width = w;
-		this.canvasNode.height = h;		
+		// Set canvas width and height
+		this.canvasNode.width = w || 300;
+		this.canvasNode.height = h || 200;
+
+        // Save canvas width and height
+        this.width = w || 300;
+		this.height = h || 200;
 		
-		// draw borders and margin 
-		// this.canvasNode.style.border = '1px solid gray';
-		// this.canvasNode.style.margin = '10px';
-		
-		// put that canvas node to document body or DOM element
-		if (el === document.body || el === 'body') {
+		// Append canvas node to DOM element
+		if (el === document.body || el === 'body' || el instanceof HTMLBodyElement) {
 			document.body.appendChild(this.canvasNode);
-		} else {
-			$qu(el).appendChild(this.canvasNode);
-		}
-		
-	}
-	
-	//collection of objects should be stored here (optional)
-	this.objs = {
-		square: {
-			path: [[-30,-30],[30,-30],[30,30],[-30,30]],
-			col: "red",
-			w: 5,
-			cap: "round"
-		}
-	}
-	
-	// resize canvas (Note: resizing clears the canvas node)
-	this.resize = (w,h) => {
-		this.canvasNode.width = w;
-		this.canvasNode.height = h;	
-	}
-	
-	// delete canvas
-	this.del = () => {
+		} else if (el.constructor.name === 'String') {
+			document.querySelector(el).appendChild(this.canvasNode);
+		} else if (el instanceof HTMLElement) {
+            el.appendChild(this.canvasNode);
+        } else {
+            let rootDiv = document.createElement('div');
+            rootDiv.setAttribute('id','root');
+            rootDiv.appendChild(this.canvasNode);
+            document.body.appendChild(rootDiv);
+        }
+
+        // List of objects to draw. Save objects here for further use
+        this.objectsArray = [];
+    }
+
+    // change or get canvas width
+    get canvasWidth() {
+        return this.width;
+    }
+    set canvasWidth(newValue) {
+        this.canvasNode.width = newValue;
+        this.width = newValue;
+    }
+
+    // change or get canvas height
+    get canvasHeight() {
+        return this.height;
+    }
+    set canvasHeight(newValue) {
+        this.canvasNode.height = newValue;
+        this.height = newValue;
+    }
+
+    // Resize canvas node
+    resizeCanvas (w,h) {
+        this.canvasNode.width = w;
+		this.canvasNode.height = h;
+        this.width = w;
+		this.height = h;	
+    }
+
+    // Delete canvas node
+    deleteCanvas () {
 		this.canvasNode.remove();
 	}
-	
-	// clear whole canvas
-	this.cls = () => {
+
+    // Clear whole canvas
+    clearCanvas () {
 		this.ctx.clearRect(0,0,this.canvasNode.width,this.canvasNode.height);
 	}
-	
-	// fill canvas with certain color
-	this.fill = col => {
+
+    // Fill whole canvas with color
+    fillCanvas (col) {
 		this.ctx.fillStyle = col;
 		this.ctx.fillRect(0,0,this.canvasNode.width,this.canvasNode.height);
 	}
-	
-	// fill latest path with color (meaning the line formed by path)
-	this.fillPath = col => {
-		this.ctx.fillStyle = col;
-		this.ctx.fill();
+
+    // Simplify basic methods of canvas
+    // color of lines/edges
+    get strokeStyle () {
+        return this.ctx.strokeStyle;
+    }
+    set strokeStyle (arg) {
+        this.ctx.strokeStyle = (arg.constructor.name === 'Object')? arg.color : arg;
+        // Here we have to check if argument is an object or a value
+    }
+    // color for filling
+    get fillStyle () {
+        return this.ctx.fillStyle;
+    }
+    set fillStyle (arg) {
+        this.ctx.fillStyle = (arg.constructor.name === 'Object')? arg.fillColor : arg;
+        // Here we have to check if argument is an object or a value
+    }
+    // line/edge width
+    get lineWidth () {
+        return this.ctx.lineWidth;
+    }
+    set lineWidth (arg) {
+        this.ctx.lineWidth = (arg.constructor.name === 'Object')? arg.lineWidth : arg;
+        // Here we have to check if argument is an object or a value
+    }
+    // line/edge cap : "butt" , "round" , "square"
+    get lineCap () {
+        return this.ctx.lineCap;
+    }
+    set lineCap (arg) {
+        this.ctx.lineCap = (arg.constructor.name === 'Object')? arg.lineCap : arg;
+        // Here we have to check if argument is an object or a value
+    }
+    // line/edge join : "bevel" , "round" , "miter";
+    get lineJoin () {
+        return this.ctx.lineJoin;
+    }
+    set lineJoin (arg) {
+        this.ctx.lineJoin = (arg.constructor.name === 'Object')? arg.lineJoin : arg;
+        // Here we have to check if argument is an object or a value
+    }
+    // fill with color which was defined with fillStyle method
+    fill () {
+        this.ctx.fill();
+    }
+    // begin/start new path
+    beginPath () {
+        this.ctx.beginPath();
+    }
+    // close/end new path
+    closePath () {
+        this.ctx.closePath();
+    }
+    // move to the starting point of new stroke/line
+    moveTo (arr) {
+        this.ctx.moveTo(...arr); // only array with 2 values allowed here. example [2, 6]
+    }
+    // move to the next point of stroke/line
+    lineTo (arr) {
+        this.ctx.lineTo(...arr); // only array with 2 values allowed here. example [2, 6]
+    }
+    // draw the line/edge
+    stroke () {
+        this.ctx.stroke();
+    }
+    //
+    arcTo (obj) {
+        this.ctx.arcTo(...obj.pivot1, ...obj.pivot2, obj.radius);
+    }
+
+    // methods for drawing 2D shapes
+    // draw line from START point to END point
+    line (obj) {
+		this.ctx.strokeStyle = obj.color;
+		this.ctx.lineWidth = obj.lineWidth;
+		this.ctx.lineCap = obj.lineCap;
+		this.ctx.beginPath();
+		this.ctx.moveTo(...obj.start);
+		this.ctx.lineTo(...obj.end);
+		this.ctx.stroke();
 	}
 
-	// function for drawing a single straight line (from one point to another)
-	this.line = ( x0, y0, xf, yf, col, w, cap='round') => {
-		this.ctx.strokeStyle = col;
-		this.ctx.lineWidth = w;
-		this.ctx.lineCap = cap;
+    // draw quadratic curve
+	quadraticCurve (obj) {
+		this.ctx.strokeStyle = obj.color;
+		this.ctx.lineWidth = obj.lineWidth;
+		this.ctx.lineCap = obj.lineCap;
 		this.ctx.beginPath();
-		this.ctx.moveTo(x0,y0);
-		this.ctx.lineTo(xf,yf);
+		this.ctx.moveTo(...obj.start);
+		this.ctx.quadraticCurveTo(...obj.pivot1, ...obj.end);
 		this.ctx.stroke();
-	}
-	
-	// function for drawing a single straight line (from one point to another)
-	this.line2d = ( v1, v2, col, w, cap='round') => {
-		this.ctx.strokeStyle = col;
-		this.ctx.lineWidth = w;
-		this.ctx.lineCap = cap;
-		this.ctx.beginPath();
-		this.ctx.moveTo(v1[0],v1[1]);
-		this.ctx.lineTo(v2[0],v2[1]);
-		this.ctx.stroke();
-	}
-	
-	// function for drawing path of lines, 
-	// where MAT is array of points like [ [x1,y1], [x2,y2], [x3,y3], [x4,y4]]
-	this.path = (mat, col, w, cap='round') => {
-		this.ctx.strokeStyle = col;
-		this.ctx.lineWidth = w;
-		this.ctx.lineCap = cap;
-		this.ctx.beginPath();
-		this.ctx.moveTo(mat[0][0],mat[0][1]);
-		for (let i=1; i<mat.length; i++) {
-			this.ctx.lineTo(mat[i][0],mat[i][1]);
-		}
-		this.ctx.stroke();
-	}
-	
-	// draw multiple pathes with same properties
-	this.mpath = (matm, col, w, cap='round') => {
-		for (let i=0; i<matm.length; i++) {
-			this.path( matm[i], col, w, cap );
-		}
-	}
-	
-	// draw multiple pathes with different properties
-	this.mpaths = (matm, colm, wm, capm) => {
-		for (let i=0; i<matm.length; i++) {
-			this.path( matm[i], colm[i], wm[i], capm[i] );
-		}
-	}
-	
-	
-	// draw straight line with multiple lines
-	this.linePath = ( x0, y0, xf, yf, len, col, w, cap='round') => {
-      let mat = darray(x0, y0, xf, yf, len);
-		this.path(mat, col, w, cap='round');
-	}
-	// draw circle with multiple lines
-	this.circlePath = ( cx, cy, r, ph, len, col, w, cap='round') => {
-      let mat = carray(cx, cy, r, ph, len);
-		this.poly(mat, col, col, w, cap='round');
-	}
-	
-	// draw quadratic curve
-	this.quad = ( x0, y0, cx, cy, xf, yf, col, w, cap='round') => {
-		this.ctx.strokeStyle = col;
-		this.ctx.lineWidth = w;
-		this.ctx.lineCap = cap;
-		this.ctx.beginPath();
-		this.ctx.moveTo(x0,y0);
-		this.ctx.quadraticCurveTo(cx,cy,xf,yf);
-		this.ctx.stroke();
-		// this.ctx.fillStyle = col;
-		// this.ctx.fill();
 	}
 	
 	// draw bezier curve
-	this.bez = ( x0, y0, cx1,cy1, cx2,cy2, xf, yf, col, w, cap='round') => {
-		this.ctx.strokeStyle = col;
-		this.ctx.lineWidth = w;
-		this.ctx.lineCap = cap;
+	bezierCurve (obj) {
+		this.ctx.strokeStyle = obj.color;
+		this.ctx.lineWidth = obj.lineWidth;
+		this.ctx.lineCap = obj.lineCap;
 		this.ctx.beginPath();
-		this.ctx.moveTo(x0,y0);
-		this.ctx.bezierCurveTo(cx1,cy1,cx2,cy2,xf,yf);
+		this.ctx.moveTo(...obj.start);
+		this.ctx.quadraticCurveTo(...obj.pivot1, ...obj.pivot2, ...obj.end);
 		this.ctx.stroke();
-		// this.ctx.fillStyle = col;
-		// this.ctx.fill();
 	}
-	
-	// draw colored polygon from points
-	this.poly = (mat,col,fillCol,w, join='round') => {
-		this.ctx.strokeStyle = col;
-		this.ctx.lineWidth = w;
-		this.ctx.lineJoin = join; // miter(default), bevel, round
+
+    // draw path through points/vertices
+    path (polygon) {
+		this.ctx.strokeStyle = polygon.color;
+		this.ctx.lineWidth = polygon.lineWidth;
+		this.ctx.lineCap = polygon.lineCap;
+		this.ctx.lineJoin = polygon.lineJoin;
 		this.ctx.beginPath();
-		this.ctx.moveTo(mat[0][0],mat[0][1]);
-		for (let i=1; i<mat.length; i++) {
-			this.ctx.lineTo(mat[i][0],mat[i][1]);
+		this.ctx.moveTo(polygon.path[0][0],polygon.path[0][1]);
+		for (let i=1; i<polygon.path.length; i++) {
+			this.ctx.lineTo(polygon.path[i][0],polygon.path[i][1]);
+		}
+		this.ctx.stroke();
+	}
+
+    // draw polygon and fill it with color. Also edges have different color
+    polygon (polygon) {
+        this.ctx.strokeStyle = polygon.color;
+		this.ctx.lineWidth = polygon.lineWidth;
+		this.ctx.lineJoin = polygon.lineJoin;
+		this.ctx.beginPath();
+		this.ctx.moveTo(polygon.path[0][0],polygon.path[0][1]);
+		for (let i=1; i<polygon.path.length; i++) {
+			this.ctx.lineTo(polygon.path[i][0],polygon.path[i][1]);
 		}
 		this.ctx.closePath();
 		this.ctx.stroke();
-		this.ctx.fillStyle = fillCol;
+		this.ctx.fillStyle = polygon.fillColor;
 		this.ctx.fill();
-	}
-	
-	// draw colored polygons from multiple set of polygons; 
-	// here polygons have same colors and linewidth
-	this.mpoly = (mpath,col,fillCol,w, join='round') => {
-		for (let i=0; i<mpath.length; i++) {
-			this.poly(mpath[i],col,fillCol,w, join);
-		}
-	}
-	
-	// draw colored polygons from multiple set of polygons; 
-	// here polygons have different colors and linewidth
-	this.mpolys = (mpath,col,fillCol,w, join) => {
-		for (let i=0; i<mpath.length; i++) {
-			this.poly(mpath[i],col[i],fillCol[i],w[i], join[i]);
-		}
-	}
-	
-	// draw arc       // start angle, arc angle
-	this.arc = (x,y,r,sAngle,eAngle,counterclockwise, col, w, cap='round') => {
-		this.ctx.strokeStyle = col;
-		this.ctx.lineWidth = w;
-		this.ctx.lineCap = cap;
+    }
+
+    // draw arc according to center and angles
+    arc (arc) {
+		this.ctx.strokeStyle = arc.color;
+		this.ctx.lineWidth = arc.lineWidth;
+        this.ctx.lineJoin = arc.lineJoin;
+		this.ctx.lineCap = arc.lineCap;
 		this.ctx.beginPath();
-		this.ctx.arc(x,y,r,sAngle,eAngle,counterclockwise);  // counterclockwise is boolean
+		this.ctx.arc(
+            arc.center[0],
+            arc.center[1],
+            arc.radius,
+            arc.angles[0],
+            arc.angles[1],
+            arc.ccw
+        );
 		this.ctx.stroke();
-	}
-	
-	// draw dot       //start angle 0, arc angle 360
-	this.dot = (x,y,col,w) => {
-		this.ctx.strokeStyle = col;
-		this.ctx.lineWidth = w;
-		this.ctx.lineCap = "round";
-		this.ctx.beginPath();
-		this.ctx.arc(x,y,1,0,2*PI,false);  // counterclockwise is boolean
-		this.ctx.stroke();
-	}
-	
-	// rotate single point X,Y around pivot PX,PY by an angle dT
-	// rotation is counterclockwise
-	this.rotp = (x,y, px, py, dt, cclw = true) => {
-		if (!cclw) {
-			dt *= -1;
-		}
-		let xx = x - px, yy = y - py;
-		let rx = xx*Math.cos(dt) - yy*Math.sin(dt) + px;
-		let ry = xx*Math.sin(dt) + yy*Math.cos(dt) + py;
-		return [rx,ry];
-	}
-	
-	// rotate points of any path around pivot PX,PY by an angle dT
-	this.rotatePath = (mat, px,py, dt, col, w, cap='round') => {
-		let nmat = [];
-		for (let i=0; i<mat.length; i++) {
-			nmat[i] = this.rotp(mat[i][0],mat[i][1],px,py,dt);
-		}
-		this.path(nmat,col,w, cap)
-	}
-	
-	// rotate points of any path around center of mass by an angle dT
-	this.rotateCntr = (mat, dt, col, w, cap='round') => {
-		let nmat = [],
-			 cn = cntr(mat),
-			 px = cn[0],
-			 py = cn[1];		
-		for (let i=0; i<mat.length; i++) {
-			nmat[i] = this.rotp(mat[i][0],mat[i][1],px,py,dt);
-		}
-		this.path(nmat,col,w, cap);
-		return nmat;
-	}
-	
-	this.text = (txt,x,y,family,size,col) => {
-		this.ctx.font = size + "px " + family;
-		this.ctx.fillStyle = col;
-		this.ctx.fillText(txt, x, y);
 	}
 
-} // end of constructor CnvMaker
+    // draw arc according to start point and two pivot points. It is like quadratic curve, but the curve is pure circle's section
+    arcXY (obj) {
+        this.ctx.strokeStyle = obj.color;
+		this.ctx.lineWidth = obj.lineWidth;
+		this.ctx.lineJoin = obj.lineJoin;
+        this.ctx.lineCap = obj.lineCap;
+		this.ctx.beginPath();
+		this.moveTo(obj.start);
+        this.arcTo(obj);
+        this.lineTo(obj.end);
+		//this.ctx.closePath();
+		this.ctx.stroke();
+    }
+
+    point (obj) {
+        this.ctx.strokeStyle = obj.color;
+        this.ctx.fillStyle = obj.fillColor
+		this.ctx.lineWidth = obj.lineWidth;
+		this.ctx.beginPath();
+		this.ctx.arc(
+            obj.center[0],
+            obj.center[1],
+            obj.radius,
+            0,
+            2*Math.PI
+        );
+        this.ctx.closePath();
+		this.ctx.stroke();
+        this.ctx.fill();
+    }
+
+    segment (arc) {
+        this.ctx.strokeStyle = arc.color;
+		this.ctx.lineWidth = arc.lineWidth;
+        this.ctx.lineJoin = arc.lineJoin;
+		this.ctx.lineCap = arc.lineCap;
+		this.ctx.beginPath();
+		this.ctx.arc(
+            arc.center[0],
+            arc.center[1],
+            arc.radius,
+            arc.angles[0],
+            arc.angles[1],
+            arc.ccw
+        );
+        this.ctx.closePath();
+		this.ctx.stroke();
+        this.ctx.fillStyle = arc.fillColor;
+		this.ctx.fill();
+    }
+
+    sector (arc) {
+        this.ctx.strokeStyle = arc.color;
+		this.ctx.lineWidth = arc.lineWidth;
+        this.ctx.lineJoin = arc.lineJoin;
+		this.ctx.lineCap = arc.lineCap;
+		this.ctx.beginPath();
+		this.ctx.arc(
+            arc.center[0],
+            arc.center[1],
+            arc.radius,
+            arc.angles[0],
+            arc.angles[1],
+            arc.ccw
+        );
+        this.ctx.lineTo(arc.center[0],arc.center[1]);
+        this.ctx.closePath();
+		this.ctx.stroke();
+        this.ctx.fillStyle = arc.fillColor;
+		this.ctx.fill();
+    }
+
+    circle (circle) {
+        this.ctx.strokeStyle = circle.color;
+		this.ctx.lineWidth = circle.lineWidth;
+		this.ctx.beginPath();
+		this.ctx.arc(
+            circle.center[0],
+            circle.center[1],
+            circle.radius,
+            0,
+            2*Math.PI
+        );
+		this.ctx.stroke();
+    }
+
+    disk (disk) {
+        this.ctx.strokeStyle = disk.color;
+		this.ctx.lineWidth = disk.lineWidth;
+		this.ctx.beginPath();
+		this.ctx.arc(
+            disk.center[0],
+            disk.center[1],
+            disk.radius,
+            0,
+            2*Math.PI
+        );
+        this.ctx.closePath();
+		this.ctx.stroke();
+        this.ctx.fillStyle = disk.fillColor;
+		this.ctx.fill();
+    }
+
+    square (square) {
+        this.ctx.strokeStyle = square.color;
+		this.ctx.lineWidth = square.lineWidth;
+		this.ctx.lineJoin = square.lineJoin; // miter(default), bevel, round
+		this.ctx.beginPath();
+		this.ctx.moveTo(square.corner[0], square.corner[1]);
+		this.ctx.lineTo(square.corner[0]+square.width, square.corner[1]);
+
+		this.ctx.lineTo(square.corner[0]+square.width, square.corner[1]+square.width);
+		this.ctx.lineTo(square.corner[0], square.corner[1]+square.width);
+		this.ctx.closePath();
+		this.ctx.stroke();
+		this.ctx.fillStyle = square.fillColor;
+		this.ctx.fill();
+    }
+
+    rectangle (rectangle) {
+        this.ctx.strokeStyle = rectangle.color;
+		this.ctx.lineWidth = rectangle.lineWidth;
+		this.ctx.lineJoin = rectangle.lineJoin; // miter(default), bevel, round
+		this.ctx.beginPath();
+		this.ctx.moveTo(rectangle.corner[0], rectangle.corner[1]);
+		this.ctx.lineTo(rectangle.corner[0]+rectangle.width, rectangle.corner[1]);
+
+		this.ctx.lineTo(rectangle.corner[0]+rectangle.width, rectangle.corner[1]+rectangle.height);
+		this.ctx.lineTo(rectangle.corner[0], rectangle.corner[1]+rectangle.height);
+		this.ctx.closePath();
+		this.ctx.stroke();
+		this.ctx.fillStyle = rectangle.fillColor;
+		this.ctx.fill();
+    }
+
+    // delete everything within borders of rectangle
+    clearRect(rectangle) {
+        this.ctx.clearRect(...rectangle.corner, rectangle.width, rectangle.height);
+    }
+
+    ellipse (ellipse) {
+        this.ctx.strokeStyle = ellipse.color;
+		this.ctx.lineWidth = ellipse.lineWidth;
+		this.ctx.beginPath();
+		this.ctx.ellipse(
+            ellipse.center[0],
+            ellipse.center[1],
+            ellipse.radiusX,
+            ellipse.radiusY,
+            ellipse.rotation,
+            0,
+            2*Math.PI,
+        );
+        this.ctx.closePath();
+		this.ctx.stroke();
+        this.ctx.fillStyle = ellipse.fillColor;
+		this.ctx.fill();
+    }
+
+    ellipseSegment (ellipse) {
+        this.ctx.strokeStyle = ellipse.color;
+		this.ctx.lineWidth = ellipse.lineWidth;
+		this.ctx.beginPath();
+		this.ctx.ellipse(
+            ellipse.center[0],
+            ellipse.center[1],
+            ellipse.radiusX,
+            ellipse.radiusY,
+            ellipse.rotation,
+            ellipse.angles[0],
+            ellipse.angles[1],
+            ellipse.ccw,
+        );
+        this.ctx.closePath();
+		this.ctx.stroke();
+        this.ctx.fillStyle = ellipse.fillColor;
+		this.ctx.fill();
+    }
+
+    ellipseSector (ellipse) {
+        this.ctx.strokeStyle = ellipse.color;
+		this.ctx.lineWidth = ellipse.lineWidth;
+		this.ctx.beginPath();
+		this.ctx.ellipse(
+            ellipse.center[0],
+            ellipse.center[1],
+            ellipse.radiusX,
+            ellipse.radiusY,
+            ellipse.rotation,
+            ellipse.angles[0],
+            ellipse.angles[1],
+            ellipse.ccw,
+        );
+        this.ctx.lineTo(ellipse.center[0], ellipse.center[1]);
+        this.ctx.closePath();
+		this.ctx.stroke();
+        this.ctx.fillStyle = ellipse.fillColor;
+		this.ctx.fill();
+    }
+
+    // write text with fillText
+    text (text) {
+        this.ctx.strokeStyle = text.color;
+        this.ctx.fillStyle = text.fillColor;
+        this.ctx.lineWidth = text.lineWidth;
+        this.ctx.font = text.font;
+        this.ctx.maxWidth = text.maxWidth;
+        this.ctx.textAlign = text.textAlign;
+        this.ctx.textBaseline = text.textBaseline;
+        this.ctx.direction = text.direction;
+        this.ctx.type = text.type;
+        if (text.type === 'stroke') {
+            this.ctx.strokeText(text.text, ...text.start);
+        } else {
+            this.ctx.fillText(text.text, ...text.start);
+        }
+    }
+
+    getTextWidth (text) {
+        return this.ctx.measureText(text.text).width;
+    }
+
+    // special method for animating frames
+    animation (func) {
+        let frame = () => {
+            func();
+            window.requestAnimationFrame(frame);
+        }
+        frame();
+    }
+
+    // add blur effect to next drawings
+    setBlur (number) {
+        this.ctx.filter = `blur(${number}px)`;
+    }
+
+    // reset blur effect to 'none'
+    clearBlur () {
+        this.ctx.filter = `blur(0px)`;
+    }
+
+    setOpacity (value) {
+        this.ctx.globalAlpha = value;
+    }
+
+    clearOpacity () {
+        this.ctx.globalAlpha = 1.0;
+    }
+
+    globalCompositeOperation (valueString) {
+        this.ctx.globalCompositeOperation = valueString;
+        // possible values: source-over, source-in, source-out, source-atop,
+        //                  destination-over, destination-in, destination-out, destination-atop,
+        //                  lighter, copy, xor, multiply, screen, overlay, darken, lighten, color-dodge
+        //                  color-burn, hard-light, soft-light, difference, exclusion, hue,
+        //                  saturation, color, luminosity, 
+    }
+
+    shadowPath (obj) {
+        this.setBlur(obj.shadowBlur);
+        this.ctx.strokeStyle = obj.shadowColor;
+		this.ctx.lineWidth = obj.lineWidth;
+		this.ctx.lineJoin = obj.lineJoin;
+        this.ctx.lineCap = obj.lineCap;
+		this.ctx.beginPath();
+		this.ctx.moveTo(obj.path[0][0] + obj.shadowOffsetX, obj.path[0][1] + obj.shadowOffsetY);
+		for (let i=1; i<obj.path.length; i++) {
+			this.ctx.lineTo(obj.path[i][0] + obj.shadowOffsetX, obj.path[i][1] + obj.shadowOffsetY);
+		}
+		this.ctx.stroke();
+        this.clearBlur();
+    }
+
+    shadowPolygon (obj) {
+        this.setBlur(obj.shadowBlur);
+        this.ctx.strokeStyle = obj.shadowColor;
+		this.ctx.lineWidth = obj.lineWidth;
+		this.ctx.lineJoin = obj.lineJoin;
+		this.ctx.beginPath();
+		this.ctx.moveTo(obj.path[0][0] + obj.shadowOffsetX, obj.path[0][1] + obj.shadowOffsetY);
+		for (let i=1; i<obj.path.length; i++) {
+			this.ctx.lineTo(obj.path[i][0] + obj.shadowOffsetX, obj.path[i][1] + obj.shadowOffsetY);
+		}
+		this.ctx.closePath();
+		this.ctx.stroke();
+		this.ctx.fillStyle = obj.shadowColor;
+		this.ctx.fill();
+        this.clearBlur();
+    }
+
+    randomPoint () {
+        return [Math.round(this.width*Math.random()),
+                Math.round(this.height*Math.random())];
+    }
+
+    translateCanvas (dx,dy) {
+        this.ctx.translate(dx,dy);
+    }
+
+    scaleCanvas (coeffX,coeffY) {
+        this.ctx.scale(coeffX,coeffY);
+    }
+
+    originToCenter () {
+        this.translateCanvas(this.width/2, this.height/2);
+    }
+
+    grid (obj) {
+        this.gridStep = obj.gridStep;
+        this.gridColor = obj.gridColor;
+        
+        for ( let i = -2*this.width; i < 2*this.width; i += obj.gridStep ) {
+            this.line({
+                color: obj.gridColor,
+		        lineWidth: 1,
+		        lineCap: 'round',
+		        start: [i,-2*this.height],
+		        end: [i,2*this.height]
+            });
+        }
+        for ( let i = -2*this.height; i < 2*this.height; i += obj.gridStep ) {
+            this.line({
+                color: obj.gridColor,
+		        lineWidth: 1,
+		        lineCap: 'round',
+		        start: [-2*this.width,i],
+		        end: [2*this.width,i]
+            });
+        }
+    }
+
+    isPath (path) {
+        if (path.constructor.name !== 'Array') return false;
+
+        for (let i=0; i<path.length; i++) {
+
+            if (path[i].constructor.name !== 'Array') return false;
+            if (path[i].length !== 2) return false;
+
+            if (path[i][0].constructor.name !== 'Number') return false;
+            if (path[i][1].constructor.name !== 'Number') return false;
+            
+        }
+
+        return true;
+    }
+
+    isEmptyPath (path) {
+        if (path.constructor.name !== 'Array') return false;
+        if (path.length !== 0) return false;
+        return true;
+    }
+}
+
+class Calculus2D {
+    constructor (obj) {
+        this.matrix = obj.matrix;
+        this.vector = obj.vector; // array with random length, all elements are numbers
+        this.point = obj.point;
+    }
+
+    isPoint (point) {
+        if (point.constructor.name !== 'Array') return false;
+        if (point.length !== 2) return false;
+        if (point[0].constructor.name !== 'Number' || point[1].constructor.name !== 'Number') return false;
+        if (Number.isNaN(point[0]) || Number.isNaN(point[1])) return false;
+        return true;
+    }
+
+    isVector (vector) {
+        if (vector.constructor.name !== 'Array') return false;
+        for (let i=0; i<vector.length; i++) {
+            if (vector[i].constructor.name !== 'Number' || Number.isNaN(vector[i])) return false;
+        }
+        return true;
+    }
+
+    isMatrix (matrix) {
+
+        if (matrix.constructor.name !== 'Array') return false;
+
+        let rowLength = matrix[0].length;
+
+        for (let i=0; i<matrix.length; i++) {
+
+            if (matrix[i].constructor.name !== 'Array') return false;
+            if (matrix[i].length !== rowLength) return false;
+
+            for (let j = 0; j < matrix[i].length; j++) {
+                if (matrix[i][j].constructor.name !== 'Number') return false;
+            }
+        }
+
+        return true;
+    }
+
+    isSquareMatrix (matrix) {
+        if (!this.isMatrix(matrix)) return false;
+        if (matrix.length !== matrix[0].length) return false;
+        return true;
+    }
+
+    vectorLength (vector) {
+        let length = 0;
+        for (let i=0; i<vector.length; i++) {
+            length += vector[i]**2;
+        }
+        return sqrt(length);
+    }
+
+    getUnitVector(vector) {
+        let length = this.vectorLength(vector),
+            unitVector = [];
+        for (let i=0; i<vector.length; i++) {
+            unitVector.push(vector[i]/length);
+        }
+        return unitVector;
+    }
+
+    zerosVector (numElements) {
+        let vector = [];
+        for (let j=0; j<numElements; j++) vector.push(0);
+        return vector;
+    }
+
+    onesVector (numElements) {
+        let vector = [];
+        for (let j=0; j<numElements; j++) vector.push(1);
+        return vector;
+    }
+
+    zerosMatrix (numRows, numCols = numRows) {
+        let matrix = [];
+        for (let i=0; i<numRows; i++) {
+            let row = [];
+            for (let j=0; j<numCols; j++) {
+                row.push(0);
+            }
+            matrix.push(row);
+        }
+        return matrix;
+    }
+
+    onesMatrix (numRows, numCols = numRows) {
+        let matrix = [];
+        for (let i=0; i<numRows; i++) {
+            let row = [];
+            for (let j=0; j<numCols; j++) {
+                row.push(1);
+            }
+            matrix.push(row);
+        }
+        return matrix;
+    }
+    
+    identityMatrix (numRows, numCols = numRows) {
+        let matrix = [];
+        for (let i=0; i<numRows; i++) {
+            let row = [];
+            for (let j=0; j<numCols; j++) {
+                if (i===j) {
+                    row.push(1);
+                } else {
+                    row.push(0);
+                }
+                
+            }
+            matrix.push(row);
+        }
+        return matrix;
+    }
+
+    dotProduct (v1,v2) {
+        if (v1.length !== v2.length) return undefined;
+        let product = 0;
+        for (let i=0; i<v1.length; i++) {
+            product += v1[i] * v2[i];
+        }
+    }
+
+    vectorProduct (v1,v2) {
+        if (v1.length !==3 && v2.length !==3) return undefined;
+        return [
+            v1[1]*v2[2] - v1[2]*v2[1],
+           -v1[0]*v2[2] + v1[2]*v2[0],
+            v1[0]*v2[1] - v1[1]*v2[0]
+        ]
+    }
+}
+
+class Chart {
+    constructor (data) {
+        this.title = data.title;
+        this.titleColor = data.titleColor;
+        this.labelX = data.labelX;
+        this.labelY = data.labelY;
+        this.labelColor = data.labelColor;
+        this.dataX = data.dataX;
+        this.dataY = data.dataY;
+        this.points = data.points;
+        this.bgColor = data.bgColor;
+        this.textColor = data.textColor;
+        this.barsColor = data.barsColor;
+    }
+
+    init ({element, width, height}) {
+        this.c = new CnvMaker(element, width, height);
+    }
+
+    plot () {
+        this.c.text({
+            
+        });
+    }
+}
