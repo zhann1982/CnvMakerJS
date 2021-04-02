@@ -1011,8 +1011,65 @@ class CnvMaker {
         return true;
     }
 
-    chart (data) {
-        
+    chart (chart) {
+
+        // setup layout
+        this.rectangle({
+            color: chart.layout.borderColor,
+            fillColor: chart.layout.bgcolor,
+            lineWidth: chart.layout.borderWidth,
+            lineJoin: 'round',
+            corner: chart.layout.startPoint,
+            width: chart.layout.width,
+            height: chart.layout.height
+        });
+
+        // draw title
+        this.text({
+            start: [ chart.layout.startPoint[0] + chart.layout.width/2, chart.layout.startPoint[1] + chart.layout.height/10 ],
+            textAlign: 'center',
+            color: chart.title.color,
+            fillColor: chart.title.color,
+            font: chart.title.font,
+            text: chart.title.text,
+            type: 'fill',
+            maxWidth : chart.layout.width - 40,
+            lineWidth: 1
+        });
+
+        // draw axis Y
+        this.line({
+            color: 'black',
+            lineWidth: 1,
+            lineCap: 'round',
+            start: [chart.layout.startPoint[0] + chart.layout.width/10, chart.layout.startPoint[1] + chart.layout.height - chart.layout.width/10],
+            end: [chart.layout.startPoint[0] + chart.layout.width/10, chart.layout.startPoint[1] +  chart.layout.width/10]
+        });
+
+        // draw axis X
+        this.line({
+            color: 'black',
+            lineWidth: 1,
+            lineCap: 'round',
+            start: [chart.layout.startPoint[0] + chart.layout.width/10, chart.layout.startPoint[1] + chart.layout.height - chart.layout.width/10],
+            end: [chart.layout.startPoint[0] + chart.layout.width - chart.layout.width/10, chart.layout.startPoint[1] + chart.layout.height - chart.layout.width/10]
+        });
+
+        // write labels
+        this.ctx.strokeStyle = 'black';
+        this.ctx.fillStyle = 'black';
+        this.ctx.lineWidth = 1;
+        this.ctx.font = '14px Tahoma';
+        this.ctx.save();
+        this.ctx.translate(chart.layout.startPoint[0] + chart.layout.width/10, chart.layout.startPoint[1] +  chart.layout.width/10);
+        this.ctx.rotate(-Math.PI/2);
+        this.ctx.textAlign = "center";
+        this.ctx.fillText(chart.yAxis.label, -chart.layout.height/12, -chart.layout.width/100 - 4);
+        this.ctx.restore();
+
+        if (chart.layout.chartType = 'bars') {
+
+        }
     }
 }
 
@@ -1149,6 +1206,30 @@ class Calculus2D {
            -v1[0]*v2[2] + v1[2]*v2[0],
             v1[0]*v2[1] - v1[1]*v2[0]
         ]
+    }
+}
+
+class Chart {
+    constructor(obj) {
+        this.layout = obj.layout;
+        /* layout = {
+            startPoint, width, height
+            borderColor, borderWidth
+            bgcolor, chartType, barColor
+        } */
+        this.title = obj.title;
+        /* title = {
+            text, color, placement, font
+        } */
+        this.xAxis = obj.xAxis;
+        /* xAxis = {
+            label, min, max, data
+        } */
+        this.yAxis = obj.yAxis;
+        /* yAxis = {
+            label, min, max, data
+        } */
+        this.infoPanel = obj.infoPanel;
     }
 }
 
