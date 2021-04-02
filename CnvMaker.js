@@ -1010,6 +1010,10 @@ class CnvMaker {
         if (path.length !== 0) return false;
         return true;
     }
+
+    chart (data) {
+        
+    }
 }
 
 class Calculus2D {
@@ -1148,28 +1152,3 @@ class Calculus2D {
     }
 }
 
-class Chart {
-    constructor (data) {
-        this.title = data.title;
-        this.titleColor = data.titleColor;
-        this.labelX = data.labelX;
-        this.labelY = data.labelY;
-        this.labelColor = data.labelColor;
-        this.dataX = data.dataX;
-        this.dataY = data.dataY;
-        this.points = data.points;
-        this.bgColor = data.bgColor;
-        this.textColor = data.textColor;
-        this.barsColor = data.barsColor;
-    }
-
-    init ({element, width, height}) {
-        this.c = new CnvMaker(element, width, height);
-    }
-
-    plot () {
-        this.c.text({
-            
-        });
-    }
-}
