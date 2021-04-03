@@ -23,7 +23,12 @@ let chart = new Chart({
     yAxis: {
         label: 'Likes',
         min: 0,
-        max: 1000
+        max: 1000,
+        data: [150,215,355,420,645,891]
+    },
+    xAxis: {
+        label: 'Month',
+        data: ['Jan','Feb','Mar','Apr','May','Jun']
     }
 });
 

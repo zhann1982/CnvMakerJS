@@ -506,6 +506,16 @@ class CnvMaker {
 		this.ctx.fillRect(0,0,this.canvasNode.width,this.canvasNode.height);
 	}
 
+    // save current context
+    save () {
+        this.ctx.save();
+    }
+
+    // restore current context
+    restore () {
+        this.ctx.restore();
+    }
+
     // Simplify basic methods of canvas
     // color of lines/edges
     get strokeStyle () {
@@ -1025,15 +1035,18 @@ class CnvMaker {
         });
 
         // draw title
+        let start = [...chart.layout.startPoint],
+            width = chart.layout.width,
+            height = chart.layout.height;
         this.text({
-            start: [ chart.layout.startPoint[0] + chart.layout.width/2, chart.layout.startPoint[1] + chart.layout.height/10 ],
+            start: [ start[0] + width/2, start[1] + height/10 ],
             textAlign: 'center',
             color: chart.title.color,
             fillColor: chart.title.color,
             font: chart.title.font,
             text: chart.title.text,
             type: 'fill',
-            maxWidth : chart.layout.width - 40,
+            maxWidth : width - 40,
             lineWidth: 1
         });
 
@@ -1042,8 +1055,8 @@ class CnvMaker {
             color: 'black',
             lineWidth: 1,
             lineCap: 'round',
-            start: [chart.layout.startPoint[0] + chart.layout.width/10, chart.layout.startPoint[1] + chart.layout.height - chart.layout.width/10],
-            end: [chart.layout.startPoint[0] + chart.layout.width/10, chart.layout.startPoint[1] +  chart.layout.width/10]
+            start: [start[0] + width/10, start[1] + height - width/10],
+            end: [start[0] + width/10, start[1] +  width/10]
         });
 
         // draw axis X
@@ -1051,8 +1064,8 @@ class CnvMaker {
             color: 'black',
             lineWidth: 1,
             lineCap: 'round',
-            start: [chart.layout.startPoint[0] + chart.layout.width/10, chart.layout.startPoint[1] + chart.layout.height - chart.layout.width/10],
-            end: [chart.layout.startPoint[0] + chart.layout.width - chart.layout.width/10, chart.layout.startPoint[1] + chart.layout.height - chart.layout.width/10]
+            start: [start[0] + width/10, start[1] + height - width/10],
+            end: [start[0] + width - width/10, start[1] + height - width/10]
         });
 
         // write labels
@@ -1060,14 +1073,112 @@ class CnvMaker {
         this.ctx.fillStyle = 'black';
         this.ctx.lineWidth = 1;
         this.ctx.font = '14px Tahoma';
+
         this.ctx.save();
-        this.ctx.translate(chart.layout.startPoint[0] + chart.layout.width/10, chart.layout.startPoint[1] +  chart.layout.width/10);
-        this.ctx.rotate(-Math.PI/2);
+        this.ctx.translate(start[0] + width/10, start[1] +  width/10);
         this.ctx.textAlign = "center";
-        this.ctx.fillText(chart.yAxis.label, -chart.layout.height/12, -chart.layout.width/100 - 4);
+        this.ctx.fillText(chart.yAxis.label, 0, -width/100 - 4);
         this.ctx.restore();
 
+        this.ctx.save();
+        this.ctx.translate(start[0] + width - width/10, start[1] + height - width/10);
+        this.ctx.textAlign = "center";
+        this.ctx.fillText(chart.xAxis.label, 0, width/100 + 14);
+        this.ctx.restore();
+
+        // calculate needed data 
+        let xAxisLength = width - 2*width/10,
+            axisStart = [start[0] + width/10, start[1] + height - width/10],
+            xAxisEnd = [start[0] + width - width/10, start[1] + height - width/10],
+            yAxisLength = height - 2*width/10,
+            yAxisEnd = [start[0] + width/10, start[1] +  width/10];
+
+
         if (chart.layout.chartType = 'bars') {
+            // numeric values for bars
+            let barGrid = new pathGenerator().consecutiveNumbers({start: axisStart[0]+xAxisLength/10, end: xAxisEnd[0]-xAxisLength/15, length: 7});
+            let barXcenters = [];
+
+            let barYmax = [start[0] + width/10, start[1] + width/10],
+                barYmin = [start[0] + width/10, start[1] + height - width/10];
+
+            let barYlength = barYmin[1] - barYmax[1];
+
+            barYmax[1] += barYlength/10; 
+
+            for (let i = 1; i < barGrid.length; i++) {
+                barXcenters.push([
+                    (barGrid[i] - barGrid[i-1])/2,
+                    start[0] + width/10
+                ]);
+
+                this.disk({
+                    color: 'black',
+                    fillColor: 'black',
+                    radius: 2,
+                    lineWidth: 1,
+                    center: [
+                        barGrid[i-1] + (barGrid[i] - barGrid[i-1])/2,
+                        start[1] + height - width/10
+                    ]
+                });
+
+                this.text({
+                    color: 'black',
+                    fillColor: 'black',
+                    text: chart.xAxis.data[i-1],
+                    lineWidth: 1,
+                    start: [
+                        barGrid[i-1] + (barGrid[i] - barGrid[i-1])/2,
+                        start[1] + height - width/10 + 4
+                    ],
+                    textAlign: 'center',
+                    textBaseline: 'top'
+                });
+            }
+            // min indicator dot
+            this.disk({
+                color: 'black',
+                fillColor: 'black',
+                radius: 2,
+                lineWidth: 1,
+                center: barYmin
+            });
+            // min indicator text
+            this.text({
+                color: 'black',
+                fillColor: 'black',
+                text: chart.yAxis.min,
+                lineWidth: 1,
+                start: [barYmin[0]-5, barYmin[1]],
+                textAlign: 'end'
+            });
+            // max indicator dot
+            this.disk({
+                color: 'black',
+                fillColor: 'black',
+                radius: 2,
+                lineWidth: 1,
+                center: barYmax
+            });
+            // min indicator text
+            this.text({
+                color: 'black',
+                fillColor: 'black',
+                text: chart.yAxis.max,
+                lineWidth: 1,
+                start: [barYmax[0]-5, barYmax[1]],
+                textAlign: 'end'
+            });
+
+            let barYdataLengthes = [];
+            for (let i=0; i<chart.yAxis.data; i++) {
+                barYdataLengthes.push( (barYlength/chart.yAxis.max)*chart.yAxis.min);
+            }
+
+            for (let i=0; i<chart.xAxis.data; i++) {
+
+            }
 
         }
     }
