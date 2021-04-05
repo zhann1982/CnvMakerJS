@@ -7,7 +7,7 @@ let layout;
 let chart = new Chart({
     layout : {
         startPoint : [100,100], 
-        width : 700, 
+        width : 400, 
         height : 400,
         borderColor : '#aaa', 
         borderWidth : 1,
@@ -17,20 +17,23 @@ let chart = new Chart({
         barLabels: true
     },
     title: {
-        text: 'Awesome Chart',
-        color: 'red',
+        text: 'Squares of Numbers',
+        color: 'blue',
         font: '24px Arial'
     },
     yAxis: {
-        label: 'Likes',
+        label: 'Squares',
         min: 0,
-        max: 1000,
-        data: [150,215,355,420,645,891]
+        max: 50,
+        //data: [150,215,355,420,645,891]
     },
     xAxis: {
-        label: 'Month',
-        data: ['Jan','Feb','Mar','Apr','May','Jun']
-    }
+        label: 'Natural Numbers',
+        //data: ['Jan','Feb','Mar','Apr','May','Jun']
+    },
+    input : [
+        [1,1],[2,4],[3,9],[4,16],[5,25],[6,36],[7,49]
+    ]
 });
 
 c.chart(chart);

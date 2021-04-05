@@ -1050,68 +1050,82 @@ class CnvMaker {
             lineWidth: 1
         });
 
-        // draw axis Y
-        this.line({
-            color: 'black',
-            lineWidth: 1,
-            lineCap: 'round',
-            start: [start[0] + width/10, start[1] + height - width/10],
-            end: [start[0] + width/10, start[1] +  width/10]
-        });
-
-        // draw axis X
-        this.line({
-            color: 'black',
-            lineWidth: 1,
-            lineCap: 'round',
-            start: [start[0] + width/10, start[1] + height - width/10],
-            end: [start[0] + width - width/10, start[1] + height - width/10]
-        });
-
-        // write labels
-        this.ctx.strokeStyle = 'black';
-        this.ctx.fillStyle = 'black';
-        this.ctx.lineWidth = 1;
-        this.ctx.font = '16px Tahoma';
-
-        this.ctx.save();
-        this.ctx.translate(start[0] + width/10, start[1] +  width/10);
-        this.ctx.textAlign = "end";
-        this.ctx.fillText(chart.yAxis.label, 0, -width/100 - 4);
-        this.ctx.restore();
-
-        this.ctx.save();
-        this.ctx.translate(start[0] + width - width/10, start[1] + height - width/10);
-        this.ctx.textAlign = "center";
-        this.ctx.fillText(chart.xAxis.label, 0, width/100 + 14);
-        this.ctx.restore();
-
         // calculate needed data 
         let xAxisLength = width - 2*width/10,
             axisStart = [start[0] + width/10, start[1] + height - width/10],
             xAxisEnd = [start[0] + width - width/10, start[1] + height - width/10],
             yAxisLength = height - 2*width/10,
-            yAxisEnd = [start[0] + width/10, start[1] +  width/10];
+            yAxisEnd = [start[0] + width/10, start[1] + width/10];
 
+        let dataCount = (chart.xAxis.data.length)??(chart.input.length);
+        // draw axis Y
+        this.line({
+            color: 'black',
+            lineWidth: 1,
+            lineCap: 'round',
+            start: axisStart,
+            end: yAxisEnd
+        });
+        // draw axis X
+        this.line({
+            color: 'black',
+            lineWidth: 1,
+            lineCap: 'round',
+            start: axisStart,
+            end: xAxisEnd
+        });
+
+        // write labels
+        this.text({
+            color: 'black',
+            fillColor: 'black',
+            text: chart.yAxis.label,
+            font: '16px Tahoma',
+            lineWidth: 2,
+            start: [yAxisEnd[0] - 20 , yAxisEnd[1] - 5],
+            textAlign: 'start',
+            textBaseline: 'bottom'
+        });
+        this.text({
+            color: 'black',
+            fillColor: 'black',
+            text: chart.xAxis.label,
+            font: '16px Tahoma',
+            lineWidth: 2,
+            start: [xAxisEnd[0] , xAxisEnd[1] + 20],
+            textAlign: 'end',
+            textBaseline: 'top'
+        });
+
+        // numeric values for bars
+        let barGrid = new pathGenerator().consecutiveNumbers({start: axisStart[0]+xAxisLength/10, end: xAxisEnd[0]-xAxisLength/15, length: ++dataCount});
+        let barXcenters = [];
+
+        let barYmax = yAxisEnd,
+            barYmin = axisStart;
+
+        let barYlength = barYmin[1] - barYmax[1];
+
+        barYmax[1] += barYlength/10; 
+        barYlength = barYmin[1] - barYmax[1];
+
+        for (let i = 1; i < barGrid.length; i++) {
+            barXcenters.push([
+                barGrid[i] - (barGrid[i] - barGrid[i-1])/2,
+                axisStart[1]
+            ]);
+        }
+
+        let barYdataLengthes = [];
+        for (let i=0; i<chart.yAxis.data.length; i++) {
+            barYdataLengthes.push( (barYlength/chart.yAxis.max)*chart.yAxis.data[i]);
+        }
+
+        let barWidth = barGrid[1] - barGrid[0] - 10;
 
         if (chart.layout.chartType = 'bars') {
-            // numeric values for bars
-            let barGrid = new pathGenerator().consecutiveNumbers({start: axisStart[0]+xAxisLength/10, end: xAxisEnd[0]-xAxisLength/15, length: 7});
-            let barXcenters = [];
-
-            let barYmax = [start[0] + width/10, start[1] + width/10],
-                barYmin = [start[0] + width/10, start[1] + height - width/10];
-
-            let barYlength = barYmin[1] - barYmax[1];
-
-            barYmax[1] += barYlength/10; 
-            barYlength = barYmin[1] - barYmax[1];
-
+            
             for (let i = 1; i < barGrid.length; i++) {
-                barXcenters.push([
-                    barGrid[i] - (barGrid[i] - barGrid[i-1])/2,
-                    start[1] + height - width/10
-                ]);
 
                 this.disk({
                     color: 'black',
@@ -1120,7 +1134,7 @@ class CnvMaker {
                     lineWidth: 1,
                     center: [
                         barGrid[i-1] + (barGrid[i] - barGrid[i-1])/2,
-                        start[1] + height - width/10
+                        axisStart[1]
                     ]
                 });
 
@@ -1132,12 +1146,13 @@ class CnvMaker {
                     lineWidth: 1,
                     start: [
                         barGrid[i-1] + (barGrid[i] - barGrid[i-1])/2,
-                        start[1] + height - width/10 + 4
+                        axisStart[1] + 4
                     ],
                     textAlign: 'center',
                     textBaseline: 'top'
                 });
             }
+
             // min indicator dot
             this.disk({
                 color: 'black',
@@ -1146,6 +1161,7 @@ class CnvMaker {
                 lineWidth: 1,
                 center: barYmin
             });
+
             // min indicator text
             this.text({
                 color: 'black',
@@ -1156,6 +1172,7 @@ class CnvMaker {
                 textAlign: 'end',
                 textBaseline: 'bottom'
             });
+
             // max indicator dot
             this.disk({
                 color: 'black',
@@ -1164,6 +1181,7 @@ class CnvMaker {
                 lineWidth: 1,
                 center: barYmax
             });
+
             // min indicator text
             this.text({
                 color: 'black',
@@ -1175,19 +1193,12 @@ class CnvMaker {
                 textBaseline: 'bottom'
             });
 
-            let barYdataLengthes = [];
-            for (let i=0; i<chart.yAxis.data.length; i++) {
-                barYdataLengthes.push( (barYlength/chart.yAxis.max)*chart.yAxis.data[i]);
-            }
-
-            let barWidth = barGrid[1] - barGrid[0] - 10;
-            
             for (let i=0; i<chart.xAxis.data.length; i++) {
                 c.rectangle({
                     lineWidth: 1,
                     color: chart.layout.barColor,
                     fillColor: chart.layout.barColor,
-                    corner: [barGrid[i] + 5, start[1] + height - width/10 - barYdataLengthes[i]],
+                    corner: [barGrid[i] + 5, axisStart[1] - barYdataLengthes[i]],
                     width: barWidth,
                     height: barYdataLengthes[i]
                 })
@@ -1352,6 +1363,7 @@ class Calculus2D {
 class Chart {
     constructor(obj) {
         this.layout = obj.layout;
+        this.input = obj.input;
         /* layout = {
             startPoint, width, height
             borderColor, borderWidth
@@ -1362,14 +1374,18 @@ class Chart {
             text, color, placement, font
         } */
         this.xAxis = obj.xAxis;
+        this.xAxis.data = (obj.xAxis.data)??(obj.input.map(el=>el[0]));
         /* xAxis = {
             label, min, max, data
         } */
         this.yAxis = obj.yAxis;
+        this.yAxis.data = (obj.yAxis.data)??(obj.input.map(el=>el[1]));
         /* yAxis = {
             label, min, max, data
         } */
         this.infoPanel = obj.infoPanel;
     }
+
+
 }
 
