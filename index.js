@@ -7,13 +7,14 @@ let layout;
 let chart = new Chart({
     layout : {
         startPoint : [100,100], 
-        width : 500, 
+        width : 700, 
         height : 400,
         borderColor : '#aaa', 
         borderWidth : 1,
         bgcolor : '#efefefaa', 
         chartType : 'bars', 
-        barColor : 'red'
+        barColor : 'green',
+        barLabels: true
     },
     title: {
         text: 'Awesome Chart',

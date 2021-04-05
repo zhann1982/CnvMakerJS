@@ -1072,11 +1072,11 @@ class CnvMaker {
         this.ctx.strokeStyle = 'black';
         this.ctx.fillStyle = 'black';
         this.ctx.lineWidth = 1;
-        this.ctx.font = '14px Tahoma';
+        this.ctx.font = '16px Tahoma';
 
         this.ctx.save();
         this.ctx.translate(start[0] + width/10, start[1] +  width/10);
-        this.ctx.textAlign = "center";
+        this.ctx.textAlign = "end";
         this.ctx.fillText(chart.yAxis.label, 0, -width/100 - 4);
         this.ctx.restore();
 
@@ -1105,11 +1105,12 @@ class CnvMaker {
             let barYlength = barYmin[1] - barYmax[1];
 
             barYmax[1] += barYlength/10; 
+            barYlength = barYmin[1] - barYmax[1];
 
             for (let i = 1; i < barGrid.length; i++) {
                 barXcenters.push([
-                    (barGrid[i] - barGrid[i-1])/2,
-                    start[0] + width/10
+                    barGrid[i] - (barGrid[i] - barGrid[i-1])/2,
+                    start[1] + height - width/10
                 ]);
 
                 this.disk({
@@ -1126,6 +1127,7 @@ class CnvMaker {
                 this.text({
                     color: 'black',
                     fillColor: 'black',
+                    font: '14px Tahoma',
                     text: chart.xAxis.data[i-1],
                     lineWidth: 1,
                     start: [
@@ -1151,7 +1153,8 @@ class CnvMaker {
                 text: chart.yAxis.min,
                 lineWidth: 1,
                 start: [barYmin[0]-5, barYmin[1]],
-                textAlign: 'end'
+                textAlign: 'end',
+                textBaseline: 'bottom'
             });
             // max indicator dot
             this.disk({
@@ -1168,16 +1171,42 @@ class CnvMaker {
                 text: chart.yAxis.max,
                 lineWidth: 1,
                 start: [barYmax[0]-5, barYmax[1]],
-                textAlign: 'end'
+                textAlign: 'end',
+                textBaseline: 'bottom'
             });
 
             let barYdataLengthes = [];
-            for (let i=0; i<chart.yAxis.data; i++) {
-                barYdataLengthes.push( (barYlength/chart.yAxis.max)*chart.yAxis.min);
+            for (let i=0; i<chart.yAxis.data.length; i++) {
+                barYdataLengthes.push( (barYlength/chart.yAxis.max)*chart.yAxis.data[i]);
             }
 
-            for (let i=0; i<chart.xAxis.data; i++) {
+            let barWidth = barGrid[1] - barGrid[0] - 10;
+            
+            for (let i=0; i<chart.xAxis.data.length; i++) {
+                c.rectangle({
+                    lineWidth: 1,
+                    color: chart.layout.barColor,
+                    fillColor: chart.layout.barColor,
+                    corner: [barGrid[i] + 5, start[1] + height - width/10 - barYdataLengthes[i]],
+                    width: barWidth,
+                    height: barYdataLengthes[i]
+                })
+            }
 
+            if (chart.layout.barLabels==true) {
+                for (let i=0; i<chart.xAxis.data.length; i++) {
+                    c.text({
+                        lineWidth: 1,
+                        color: 'black',
+                        fillColor: 'black',
+                        font: '12px Tahoma',
+                        text: chart.yAxis.data[i],
+                        start: [barXcenters[i][0], barXcenters[i][1] - barYdataLengthes[i]-3],
+                        textAlign: 'center',
+                        textBaseline: 'bottom',
+                        type: 'fill'
+                    });
+                }
             }
 
         }
