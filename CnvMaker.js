@@ -1035,11 +1035,11 @@ class CnvMaker {
         });
 
         // draw title
-        let start = [...chart.layout.startPoint],
+        let start = [chart.layout.startPoint[0], chart.layout.startPoint[0] + 30],//[...chart.layout.startPoint],
             width = chart.layout.width,
-            height = chart.layout.height;
+            height = chart.layout.height-30;
         this.text({
-            start: [ start[0] + width/2, start[1] + height/10 ],
+            start: [ start[0] + width/2, start[1] + height/10 - 30 ],
             textAlign: 'center',
             color: chart.title.color,
             fillColor: chart.title.color,
@@ -1351,7 +1351,7 @@ class Calculus2D {
     }
 
     vectorProduct (v1,v2) {
-        if (v1.length !==3 && v2.length !==3) return undefined;
+        if (v1.length !==3 || v2.length !==3) return undefined;
         return [
             v1[1]*v2[2] - v1[2]*v2[1],
            -v1[0]*v2[2] + v1[2]*v2[0],
@@ -1385,7 +1385,5 @@ class Chart {
         } */
         this.infoPanel = obj.infoPanel;
     }
-
-
 }
 

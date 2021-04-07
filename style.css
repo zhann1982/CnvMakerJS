@@ -7,16 +7,42 @@
     box-sizing: border-box;
 }
 
-* + * {
-    margin: 1em 0 0;
-}
-
 canvas {
     box-shadow: 0px 0px 10px rgb(212, 212, 212);
+}
+
+h1 {
+    text-align: center;
+    font-size: 3em;
+    display: block;
+    line-height: 100px;
+    color: red;
 }
 
 .flex-center {
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+.buttons {
+    display: flex;
+    justify-content: space-around;
+}
+
+
+/* for Game of life */
+.buttons button {
+    height: 40px;
+    padding: 0 30px;
+    border-radius: 20px;
+    border: 1px solid green;
+    background-color: green;
+    margin-bottom: 15px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: white;
+    cursor: pointer;
+
+    outline: 1px solid transparent;
 }
