@@ -146,6 +146,7 @@ class Polygon extends Primitive{
             this.path[i][0] += this.linearSpeed[0];
             this.path[i][1] += this.linearSpeed[1];
         }
+        this.center = this.getCenter();
         return this;
     }
 
@@ -1343,7 +1344,7 @@ class Calculus2D {
     }
 
     dotProduct (v1,v2) {
-        if (v1.length !== v2.length) return undefined;
+        if (v1.length !== v2.length) return;
         let product = 0;
         for (let i=0; i<v1.length; i++) {
             product += v1[i] * v2[i];
@@ -1351,12 +1352,38 @@ class Calculus2D {
     }
 
     vectorProduct (v1,v2) {
-        if (v1.length !==3 || v2.length !==3) return undefined;
+        if (v1.length !==3 || v2.length !==3) return;
         return [
             v1[1]*v2[2] - v1[2]*v2[1],
            -v1[0]*v2[2] + v1[2]*v2[0],
             v1[0]*v2[1] - v1[1]*v2[0]
         ]
+    }
+
+    negateVector(vector) {
+        let result = [];
+        for (let i=0; i<vector.length; i++) {
+            result.push(vector[i]*(-1));
+        }
+        return result;
+    }
+
+    addVectors(v1,v2) {
+        if (v1.length !== v2.length) return;
+        let result = [];
+        for (let i=0; i<v1.length; i++) {
+            result.push(v1[i] + v2[i]);
+        }
+        return result;
+    }
+
+    subtractVectors(v1,v2) {
+        if (v1.length !== v2.length) return;
+        let result = [];
+        for (let i=0; i<v1.length; i++) {
+            result.push(v1[i] - v2[i]);
+        }
+        return result;
     }
 
     distance2points (p1,p2) {
